@@ -259,12 +259,33 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
 export default function Mindmap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const mindmapData: MindmapData | null = location.state?.mindmap || null;
+  const { mindmapId } = useParams<{ mindmapId: string }>();
+  const [mindmapData, setMindmapData] = useState<MindmapData | null>(location.state?.mindmap || null);
   const topicId: string | null = location.state?.topicId || null;
+  const [dbLoading, setDbLoading] = useState(!mindmapData);
 
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [expandingNode, setExpandingNode] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+
+  // Load from DB if not passed via state
+  useEffect(() => {
+    if (mindmapData || !mindmapId) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from('mindmaps')
+        .select('mindmap_data, topic')
+        .eq('id', mindmapId)
+        .single();
+      if (error || !data) {
+        toast.error('Failed to load mindmap');
+        navigate('/dashboard');
+        return;
+      }
+      setMindmapData(data.mindmap_data as unknown as MindmapData);
+      setDbLoading(false);
+    })();
+  }, [mindmapId, mindmapData, navigate]);
 
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!mindmapData) return { initialNodes: [], initialEdges: [] };
@@ -274,6 +295,14 @@ export default function Mindmap() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Re-initialize nodes/edges when mindmapData loads from DB
+  useEffect(() => {
+    if (!mindmapData) return;
+    const { nodes: n, edges: e } = buildNodesAndEdges(mindmapData);
+    setNodes(n);
+    setEdges(e);
+  }, [mindmapData]);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
     setSelectedNode(prev => prev?.id === node.id ? null : node);
