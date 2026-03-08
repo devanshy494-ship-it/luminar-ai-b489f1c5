@@ -451,6 +451,42 @@ export default function Dashboard() {
               </motion.div>
             </TabsContent>
 
+            {/* Mindmaps Tab */}
+            <TabsContent value="mindmaps">
+              <motion.div
+                key={`mindmaps-${highlightTab && activeTab === 'mindmaps' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'mindmaps' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'mindmaps' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
+              {loadingMindmaps ? (
+                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
+              ) : mindmaps.length > 0 ? (
+                <div className="grid gap-3">
+                  {mindmaps.map((mm) => (
+                    <div key={mm.id} className="flex items-center gap-2">
+                      <button
+                        onClick={() => navigate(`/mindmap/${mm.id}`)}
+                        className="flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border border-border/50 hover:border-success/30 card-hover transition-all text-left hover:neon-glow-sm"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground truncate">{mm.topic}</h3>
+                          <p className="text-sm text-muted-foreground">{new Date(mm.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+                      </button>
+                      <button onClick={() => handleDeleteMindmap(mm.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={GitBranch} title="No mindmaps yet" desc="Generate your first visual mindmap" onAction={() => navigate('/learn')} actionText="Create Mindmap" />
+              )}
+              </motion.div>
+            </TabsContent>
             {/* Flashcards Tab */}
             <TabsContent value="flashcards">
               <motion.div
