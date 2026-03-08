@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Mail, Lock, User, ArrowLeft, Loader2 } from 'lucide-react';
+import { BookOpen, User, ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,34 +9,25 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 export default function Auth() {
-  const [searchParams] = useSearchParams();
-  const [isSignUp, setIsSignUp] = useState(searchParams.get('mode') === 'signup');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signIn, signUp } = useAuth();
+  const { quickSignIn } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!fullName.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
     setLoading(true);
-
     try {
-      if (isSignUp) {
-        const { error } = await signUp(email, password, fullName);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          toast.success('Account created! Check your email to verify.');
-        }
+      const { error } = await quickSignIn(fullName.trim());
+      if (error) {
+        toast.error(error.message);
       } else {
-        const { error } = await signIn(email, password);
-        if (error) {
-          toast.error(error.message);
-        } else {
-          navigate('/dashboard');
-        }
+        toast.success(`Welcome, ${fullName.trim()}!`);
+        navigate('/dashboard');
       }
     } catch {
       toast.error('Something went wrong. Please try again.');
@@ -65,7 +56,7 @@ export default function Auth() {
         </motion.div>
       </div>
 
-      {/* Right panel — form */}
+      {/* Right panel — name input */}
       <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
           className="w-full max-w-md"
@@ -84,81 +75,35 @@ export default function Auth() {
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">
-              {isSignUp ? 'Create your account' : 'Welcome back'}
+              What's your name?
             </h1>
             <p className="text-muted-foreground">
-              {isSignUp
-                ? 'Start your learning journey with Luminar'
-                : 'Sign in to continue learning'}
+              Enter your name to start learning with Luminar
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    placeholder="John Doe"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="name">Your Name</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="name"
+                  placeholder="Enter your name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
                   className="pl-10"
                   required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10"
-                  required
-                  minLength={6}
+                  autoFocus
                 />
               </div>
             </div>
 
             <Button type="submit" className="w-full py-5" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {isSignUp ? 'Create Account' : 'Sign In'}
+              Start Learning
             </Button>
           </form>
-
-          <p className="mt-6 text-center text-sm text-muted-foreground">
-            {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              className="text-primary font-medium hover:underline"
-              onClick={() => setIsSignUp(!isSignUp)}
-            >
-              {isSignUp ? 'Sign in' : 'Sign up'}
-            </button>
-          </p>
         </motion.div>
       </div>
     </div>
