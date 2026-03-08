@@ -163,8 +163,8 @@ export default function Quiz() {
                   Retry Wrong Questions ({wrongQuestions.length})
                 </Button>
               )}
-              <Button variant={wrongQuestions.length > 0 ? 'outline' : 'glow'} onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>Dashboard</Button>
+              {!isCustomQuiz && <Button variant={wrongQuestions.length > 0 ? 'outline' : 'glow'} onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>}
+              <Button variant={isCustomQuiz && wrongQuestions.length === 0 ? 'glow' : 'outline'} onClick={() => navigate('/dashboard')}>Dashboard</Button>
             </div>
           </motion.div>
         </main>
