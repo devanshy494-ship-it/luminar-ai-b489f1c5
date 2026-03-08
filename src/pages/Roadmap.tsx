@@ -312,7 +312,20 @@ export default function Roadmap() {
               <Layers className="h-4 w-4 mr-2" />
               View Flashcards {flashcardCount > 0 && `(${flashcardCount})`}
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export for Notion
+            </Button>
           </div>
+
+          <NotionExportDialog
+            open={showExportDialog}
+            onOpenChange={setShowExportDialog}
+            topicTitle={topic.title}
+            steps={roadmap.steps}
+            progress={roadmap.progress}
+            extraMaterials={extraMaterials}
+          />
 
           {/* Progress Bar */}
           <div className="mb-10">
