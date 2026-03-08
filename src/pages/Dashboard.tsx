@@ -166,9 +166,12 @@ export default function Dashboard() {
             <BookOpen className="h-6 w-6 text-primary" />
             <span className="font-serif text-xl font-bold text-foreground">Luminar</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
-            <LogOut className="h-4 w-4 mr-2" /> Sign Out
-          </Button>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
+              <LogOut className="h-4 w-4 mr-2" /> Sign Out
+            </Button>
+          </div>
         </div>
       </nav>
 

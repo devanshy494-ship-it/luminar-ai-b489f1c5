@@ -38,7 +38,10 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex relative">
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       {/* Left panel — decorative */}
       <div className="hidden lg:flex lg:w-1/2 bg-primary/5 items-center justify-center p-12">
         <motion.div
