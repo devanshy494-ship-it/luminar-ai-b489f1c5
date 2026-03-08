@@ -101,11 +101,16 @@ export default function Flashcards() {
     );
   }
 
+  // Check if there's a roadmap for this topic
+  const hasRoadmap = Object.keys(stepTitles).length > 0;
+
   if (cards.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-muted-foreground">No flashcards found for this topic</p>
-        <Button onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
+        <Button onClick={() => navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard')}>
+          {hasRoadmap ? 'Back to Roadmap' : 'Back to Dashboard'}
+        </Button>
       </div>
     );
   }
