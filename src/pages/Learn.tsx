@@ -112,26 +112,21 @@ export default function Learn() {
   const handleUrlSource = async () => {
     if (!sourceUrl.trim()) return;
     setSourceError('');
-    setShowYtFallback(false);
     setLoadingSource(true);
     const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
 
     try {
       if (isYouTubeUrl(cleanUrl)) {
-        const { data, error } = await supabase.functions.invoke('youtube-transcript', {
-          body: { url: cleanUrl },
-        });
-        if (error) throw error;
-        if (data?.error) {
-          if (data?.fallbackToManual) {
-            setShowYtFallback(true);
-            setSourceError('Auto-extraction failed. Paste the transcript manually below.');
-            return;
+        // For YouTube URLs, just fetch title via oEmbed for display; actual flashcard gen uses youtube-flashcards function
+        try {
+          const videoIdMatch = cleanUrl.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+          if (videoIdMatch) {
+            const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoIdMatch[1]}`);
+            const oembedData = await oembedRes.json();
+            if (oembedData.title && !topic) setTopic(oembedData.title);
           }
-          throw new Error(data.error);
-        }
-        setExtractedContent(data.transcript);
-        if (!topic) setTopic(data.title || '');
+        } catch { /* ignore title fetch errors */ }
+        setExtractedContent(`[YouTube video: ${cleanUrl}]`);
       } else {
         const { data, error } = await supabase.functions.invoke('analyze-document', {
           body: { url: cleanUrl },
@@ -142,10 +137,7 @@ export default function Learn() {
         if (!topic && data.analysis?.title) setTopic(data.analysis.title);
       }
     } catch (err: any) {
-      if (!showYtFallback) {
-        setSourceError(err.message || 'Failed to fetch URL');
-        if (isYouTubeUrl(cleanUrl)) setShowYtFallback(true);
-      }
+      setSourceError(err.message || 'Failed to fetch URL');
     } finally {
       setLoadingSource(false);
     }
