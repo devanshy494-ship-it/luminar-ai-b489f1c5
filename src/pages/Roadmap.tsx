@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import NotionExportDialog from '@/components/NotionExportDialog';
 
 interface Resource {
   name: string;
@@ -73,6 +74,7 @@ export default function Roadmap() {
   const [extraMaterials, setExtraMaterials] = useState<Record<number, ExtraMaterials>>({});
   const [loadingExtraMaterials, setLoadingExtraMaterials] = useState<number | null>(null);
   const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -310,7 +312,20 @@ export default function Roadmap() {
               <Layers className="h-4 w-4 mr-2" />
               View Flashcards {flashcardCount > 0 && `(${flashcardCount})`}
             </Button>
+            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+              <Download className="h-4 w-4 mr-2" />
+              Export for Notion
+            </Button>
           </div>
+
+          <NotionExportDialog
+            open={showExportDialog}
+            onOpenChange={setShowExportDialog}
+            topicTitle={topic.title}
+            steps={roadmap.steps}
+            progress={roadmap.progress}
+            extraMaterials={extraMaterials}
+          />
 
           {/* Progress Bar */}
           <div className="mb-10">
