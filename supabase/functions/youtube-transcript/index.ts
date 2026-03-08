@@ -143,11 +143,34 @@ async function cleanupTranscript(rawTranscript: string, videoTitle: string): Pro
   }
 }
 
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { url } = await req.json();
+    if (!url) {
+      return new Response(
+        JSON.stringify({ error: "URL is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const videoId = extractVideoId(url);
+    if (!videoId) {
+      return new Response(
+        JSON.stringify({ error: "Invalid YouTube URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch transcript and title in parallel
-    const [transcript, title] = await Promise.all([
+    const [rawTranscript, title] = await Promise.all([
       fetchTranscript(videoId),
       fetchVideoTitle(videoId),
     ]);
+
+    // Clean up transcript with AI to fix speech-to-text errors
+    const transcript = await cleanupTranscript(rawTranscript, title);
 
     return new Response(
       JSON.stringify({ transcript, title, videoId, charCount: transcript.length }),
