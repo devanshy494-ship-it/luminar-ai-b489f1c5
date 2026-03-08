@@ -58,7 +58,14 @@ export default function Dashboard() {
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [activeTab, setActiveTab] = useState("roadmaps");
+  const [highlightTab, setHighlightTab] = useState(false);
 
+  const switchTabFromAction = (tab: string) => {
+    setActiveTab(tab);
+    setHighlightTab(true);
+    setTimeout(() => setHighlightTab(false), 1200);
+    setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
   const fetchAll = async () => {
     if (!user) return;
 
