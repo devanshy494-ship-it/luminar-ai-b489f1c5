@@ -121,7 +121,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
     const bx = Math.cos(angle) * level1Radius;
     const by = Math.sin(angle) * level1Radius;
     const branchId = `b-${bi}`;
-    const color = getColor(branch.color);
+    const color = getColorAtDepth(branch.color, 0);
 
     nodes.push({
       id: branchId,
@@ -137,10 +137,12 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
         ),
         _plainLabel: branch.label,
         _colorName: branch.color,
+        _depth: 0,
+        _branchIndex: bi,
       },
       style: {
         background: color.bg,
-        border: `2px solid ${color.border}`,
+        border: `2.5px solid ${color.border}`,
         borderRadius: '14px',
         padding: '12px 16px',
         color: color.text,
@@ -167,6 +169,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
         const cx = bx + Math.cos(childAngle) * level2Radius;
         const cy = by + Math.sin(childAngle) * level2Radius;
         const childId = `b-${bi}-c-${ci}`;
+        const childColor = getColorAtDepth(branch.color, 1);
+        const outlineStyle = getOutlineStyle(bi);
 
         nodes.push({
           id: childId,
@@ -182,14 +186,15 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
             ),
             _plainLabel: child.label,
             _colorName: branch.color,
+            _depth: 1,
+            _branchIndex: bi,
           },
           style: {
-            background: color.bg,
-            border: `1.5px solid ${color.border}`,
+            background: childColor.bg,
+            border: `1.5px ${outlineStyle} ${childColor.border}`,
             borderRadius: '10px',
             padding: '8px 12px',
-            color: color.text,
-            opacity: 0.9,
+            color: childColor.text,
             minWidth: '90px',
             maxWidth: '170px',
           },
@@ -199,7 +204,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
           id: `e-${branchId}-${childId}`,
           source: branchId,
           target: childId,
-          style: { stroke: color.edge, strokeWidth: 1.5, opacity: 0.7 },
+          style: { stroke: childColor.edge, strokeWidth: 1.5, opacity: 0.7 },
         });
 
         if (child.children) {
@@ -208,6 +213,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
             const lx = cx + Math.cos(leafAngle) * level3Radius;
             const ly = cy + Math.sin(leafAngle) * level3Radius;
             const leafId = `b-${bi}-c-${ci}-l-${li}`;
+            const leafColor = getColorAtDepth(branch.color, 2);
+            const leafOutline = getOutlineStyle(ci);
 
             nodes.push({
               id: leafId,
@@ -220,14 +227,15 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
                 ),
                 _plainLabel: leaf.label,
                 _colorName: branch.color,
+                _depth: 2,
+                _branchIndex: bi,
               },
               style: {
-                background: color.bg,
-                border: `1px solid ${color.border}`,
+                background: leafColor.bg,
+                border: `1px ${leafOutline} ${leafColor.border}`,
                 borderRadius: '8px',
                 padding: '6px 10px',
-                color: color.text,
-                opacity: 0.75,
+                color: leafColor.text,
                 fontSize: '11px',
                 maxWidth: '140px',
               },
@@ -237,7 +245,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
               id: `e-${childId}-${leafId}`,
               source: childId,
               target: leafId,
-              style: { stroke: color.edge, strokeWidth: 1, opacity: 0.5 },
+              style: { stroke: leafColor.edge, strokeWidth: 1, opacity: 0.5 },
             });
           });
         }
