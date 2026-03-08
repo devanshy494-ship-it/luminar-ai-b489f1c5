@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { topicTitle, stepTitle, stepDescription } = await req.json();
+    const { topicTitle, stepTitle, stepDescription, stepIndex, totalSteps, allSteps, generationContext } = await req.json();
     if (!topicTitle || !stepTitle) {
       return new Response(JSON.stringify({ error: "Missing topicTitle or stepTitle" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -83,20 +83,20 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a learning resource curator. Given a topic and step, provide comprehensive extra learning materials categorized into: websites (tutorials, articles, documentation), books (real published books with authors), apps (learning apps, tools, IDEs, platforms), and other (podcasts, communities, forums, cheat sheets, checklists).
+            content: `You are a learning resource curator. Given a topic and step within a structured learning roadmap, provide comprehensive extra learning materials categorized into: websites (tutorials, articles, documentation), books (real published books with authors), apps (learning apps, tools, IDEs, platforms), and other (podcasts, communities, forums, cheat sheets, checklists).
 
 For each resource provide:
 - name: descriptive title
 - url: a REAL URL you are confident exists (use well-known domains: MDN, W3Schools, freeCodeCamp, GeeksforGeeks, official docs, Amazon for books, etc.)
-- description: 1-sentence description of why it's useful
+- description: 1-sentence description of why it's useful for THIS specific step
 
 Also provide a youtubeSearchQuery for finding relevant video tutorials.
 
-Provide 3-5 items per category. Only include resources that are genuinely relevant and helpful for this specific step.`,
+Provide 3-5 items per category. Only include resources that are genuinely relevant and helpful for this specific step. Consider the learner's position in the roadmap — earlier steps need beginner-friendly resources, later steps need more advanced ones.`,
           },
           {
             role: "user",
-            content: `Topic: "${topicTitle}"\nStep: "${stepTitle}"\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n\nProvide categorized extra learning materials for this step.`,
+            content: `Topic: "${topicTitle}"\nStep: "${stepTitle}" (Step ${stepIndex !== undefined ? stepIndex + 1 : '?'} of ${totalSteps || '?'})\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n${allSteps ? `\nFull roadmap steps:\n${allSteps.map((s: any) => `${s.index + 1}. ${s.title}: ${s.description}`).join('\n')}` : ''}\n${generationContext ? `\nAdditional learning context: ${JSON.stringify(generationContext)}` : ''}\n\nProvide categorized extra learning materials specifically relevant to this step, considering where the learner is in their journey.`,
           },
         ],
         tools: [
