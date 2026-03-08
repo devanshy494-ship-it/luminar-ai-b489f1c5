@@ -53,10 +53,22 @@ export default function Admin() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await supabase.functions.invoke('admin-users');
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({}),
+        }
+      );
 
-      if (response.error) throw response.error;
-      setUsers(response.data.users || []);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to fetch users');
+      setUsers(result.users || []);
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     } finally {
@@ -68,11 +80,24 @@ export default function Admin() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const response = await supabase.functions.invoke('admin-users', {
-        body: { action: 'delete', user_id: deleteTarget.user_id },
-      });
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
 
-      if (response.error) throw response.error;
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-users`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ action: 'delete', user_id: deleteTarget.user_id }),
+        }
+      );
+
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Delete failed');
 
       toast({ title: 'User deleted', description: `${deleteTarget.email} has been removed.` });
       setUsers(prev => prev.filter(u => u.user_id !== deleteTarget.user_id));
