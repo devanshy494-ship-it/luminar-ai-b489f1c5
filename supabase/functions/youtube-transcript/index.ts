@@ -34,12 +34,12 @@ function extractVideoId(url: string): string | null {
 }
 
 async function fetchTranscript(videoId: string): Promise<string> {
-  // Fetch the YouTube watch page to extract caption track info
   const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
   const response = await fetch(watchUrl, {
     headers: {
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       "Accept-Language": "en-US,en;q=0.9",
+      "Accept": "text/html,application/xhtml+xml",
     },
   });
 
@@ -49,37 +49,92 @@ async function fetchTranscript(videoId: string): Promise<string> {
 
   const html = await response.text();
 
-  // Extract captions JSON from the page source
-  const captionMatch = html.match(/"captions":\s*(\{.*?"playerCaptionsTracklistRenderer".*?\})\s*,\s*"videoDetails"/s);
-  if (!captionMatch) {
-    // Try alternative pattern
-    const altMatch = html.match(/"captionTracks":\s*(\[.*?\])/s);
-    if (!altMatch) {
-      throw new Error("NO_CAPTIONS");
+  // Multiple strategies to find caption tracks
+  let captionBaseUrl: string | null = null;
+
+  // Strategy 1: Find captionTracks in the serialized player response
+  const trackPatterns = [
+    /"captionTracks"\s*:\s*(\[[\s\S]*?\])\s*,\s*"/,
+    /captionTracks":\s*(\[.*?\])/s,
+    /"baseUrl"\s*:\s*"(https:\/\/www\.youtube\.com\/api\/timedtext[^"]+)"/,
+  ];
+
+  for (const pattern of trackPatterns) {
+    const m = html.match(pattern);
+    if (!m) continue;
+
+    // If it matched a direct baseUrl
+    if (pattern === trackPatterns[2]) {
+      captionBaseUrl = m[1].replace(/\\u0026/g, "&");
+      break;
     }
-    const tracks = JSON.parse(altMatch[1]);
-    if (!tracks || tracks.length === 0) throw new Error("NO_CAPTIONS");
-    
-    // Prefer English, fall back to first available
-    const englishTrack = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-    const track = englishTrack || tracks[0];
-    return await fetchCaptionXml(track.baseUrl);
+
+    try {
+      // Fix escaped characters before parsing
+      const cleaned = m[1].replace(/\\u0026/g, "&").replace(/\\\//g, "/");
+      const tracks = JSON.parse(cleaned);
+      if (tracks && tracks.length > 0) {
+        const en = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
+        const track = en || tracks[0];
+        captionBaseUrl = track.baseUrl?.replace(/\\u0026/g, "&");
+        break;
+      }
+    } catch (e) {
+      console.log("Parse attempt failed, trying next pattern");
+    }
   }
 
-  // Parse the captions object
-  try {
-    const captionsJson = JSON.parse(captionMatch[1]);
-    const tracks = captionsJson?.playerCaptionsTracklistRenderer?.captionTracks;
-    if (!tracks || tracks.length === 0) throw new Error("NO_CAPTIONS");
-
-    // Prefer English auto-generated or manual
-    const englishTrack = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-    const track = englishTrack || tracks[0];
-    return await fetchCaptionXml(track.baseUrl);
-  } catch (e) {
-    if (e instanceof Error && e.message === "NO_CAPTIONS") throw e;
-    throw new Error("Failed to parse caption data");
+  // Strategy 2: Try constructing the timedtext URL directly
+  if (!captionBaseUrl) {
+    // Try to find any timedtext URL in the page
+    const timedtextMatch = html.match(/https?:\/\/www\.youtube\.com\/api\/timedtext[^"\\]+/);
+    if (timedtextMatch) {
+      captionBaseUrl = timedtextMatch[0].replace(/\\u0026/g, "&");
+    }
   }
+
+  // Strategy 3: Use the innertube API to get captions
+  if (!captionBaseUrl) {
+    console.log("Trying innertube API fallback...");
+    try {
+      const innertubeResponse = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          context: {
+            client: {
+              clientName: "WEB",
+              clientVersion: "2.20240101.00.00",
+              hl: "en",
+            },
+          },
+          videoId,
+        }),
+      });
+
+      if (innertubeResponse.ok) {
+        const playerData = await innertubeResponse.json();
+        const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        if (tracks && tracks.length > 0) {
+          const en = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
+          const track = en || tracks[0];
+          captionBaseUrl = track.baseUrl;
+        }
+      } else {
+        await innertubeResponse.text();
+      }
+    } catch (e) {
+      console.log("Innertube fallback failed:", e);
+    }
+  }
+
+  if (!captionBaseUrl) {
+    console.error("No caption URL found for video:", videoId);
+    throw new Error("NO_CAPTIONS");
+  }
+
+  console.log("Found caption URL, fetching transcript...");
+  return await fetchCaptionXml(captionBaseUrl);
 }
 
 async function fetchCaptionXml(captionUrl: string): Promise<string> {
