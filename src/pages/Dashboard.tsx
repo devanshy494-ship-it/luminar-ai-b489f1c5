@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import FlashcardCreator from '@/components/FlashcardCreator';
+import QuizCreator from '@/components/QuizCreator';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Topic {
