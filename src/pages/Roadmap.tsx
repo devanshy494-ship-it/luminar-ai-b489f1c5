@@ -27,6 +27,20 @@ interface LessonData {
   keyTakeaways: string[];
 }
 
+interface ExtraMaterial {
+  name: string;
+  url: string;
+  description: string;
+}
+
+interface ExtraMaterials {
+  videos: ExtraMaterial[];
+  websites: ExtraMaterial[];
+  books: ExtraMaterial[];
+  apps: ExtraMaterial[];
+  other: ExtraMaterial[];
+}
+
 interface RoadmapData {
   id: string;
   topic_id: string;
