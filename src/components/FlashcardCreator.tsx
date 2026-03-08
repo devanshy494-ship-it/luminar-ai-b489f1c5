@@ -297,13 +297,20 @@ export default function FlashcardCreator() {
             )}
 
             {inputMode === 'url' && (
-              <Input
-                type="url"
-                placeholder="https://example.com/article"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="h-12"
-              />
+              <div>
+                <Input
+                  type="url"
+                  placeholder="https://example.com/article or YouTube video URL"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  className="h-12"
+                />
+                {url && isYouTubeUrl(url) && (
+                  <p className="text-sm text-accent mt-2 flex items-center gap-1">
+                    <Youtube className="h-4 w-4" /> YouTube video detected — transcript will be extracted automatically
+                  </p>
+                )}
+              </div>
             )}
 
             {inputMode === 'text' && (
