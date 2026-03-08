@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, Expand, Loader2, X } from 'lucide-react';
+import { BookOpen, ArrowLeft, Expand, Shrink, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
