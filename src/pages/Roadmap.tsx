@@ -238,7 +238,19 @@ export default function Roadmap() {
       <main className="container mx-auto px-4 py-10 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{topic.title}</h1>
-          <p className="text-muted-foreground mb-6">Click on any step to study the lesson</p>
+          <p className="text-muted-foreground mb-4">Click on any step to study the lesson</p>
+
+          {/* Topic-level actions */}
+          <div className="flex flex-wrap gap-3 mb-6">
+            <Button onClick={handleOverallQuiz} disabled={generatingOverallQuiz} variant="default" size="sm">
+              {generatingOverallQuiz ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
+              Take Full Quiz
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate(`/flashcards/${topicId}`)} disabled={flashcardCount === 0}>
+              <Layers className="h-4 w-4 mr-2" />
+              View Flashcards {flashcardCount > 0 && `(${flashcardCount})`}
+            </Button>
+          </div>
 
           {/* Progress Bar */}
           <div className="mb-10">
