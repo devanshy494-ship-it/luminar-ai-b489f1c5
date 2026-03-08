@@ -203,7 +203,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
           <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
-            <Crosshair className="h-8 w-8 text-warning mb-3" />
+            <Zap className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
           </button>
