@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import FlashcardCreator from '@/components/FlashcardCreator';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Topic {
   id: string;
