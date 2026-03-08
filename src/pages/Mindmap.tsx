@@ -382,7 +382,7 @@ export default function Mindmap() {
     );
   }
 
-  const canExpand = selectedNode && selectedNode.id !== 'center' && !expandedNodes.has(selectedNode.id) && expandingNode !== selectedNode.id;
+  const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -467,7 +467,7 @@ export default function Mindmap() {
                 </p>
                 {(selectedNode.data as any)?._plainLabel && (
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    {expandedNodes.has(selectedNode.id) ? 'Already expanded' : 'Click below to dive deeper'}
+                    Click below to dive deeper
                   </p>
                 )}
                 <Button
@@ -478,8 +478,6 @@ export default function Mindmap() {
                 >
                   {expandingNode === selectedNode.id ? (
                     <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
-                  ) : expandedNodes.has(selectedNode.id) ? (
-                    'Already expanded'
                   ) : (
                     <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
                   )}
