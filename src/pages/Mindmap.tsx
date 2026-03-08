@@ -276,7 +276,11 @@ export default function Mindmap() {
     const nodeData = node.data as any;
     const label = nodeData?._plainLabel || nodeId;
     const colorName = nodeData?._colorName || 'blue';
-    const color = getColor(colorName);
+    const parentDepth = nodeData?._depth ?? 1;
+    const branchIndex = nodeData?._branchIndex ?? 0;
+    const newDepth = parentDepth + 1;
+    const color = getColorAtDepth(colorName, newDepth);
+    const outlineStyle = getOutlineStyle(branchIndex);
 
     setExpandingNode(nodeId);
 
@@ -297,11 +301,9 @@ export default function Mindmap() {
 
       const children: { label: string; description?: string }[] = data.children;
 
-      // Calculate positions around the parent node
       const parentPos = node.position;
       const expandRadius = 180;
       const angleStep = (2 * Math.PI) / children.length;
-      // Find an angle offset based on the parent's position relative to center
       const baseAngle = Math.atan2(parentPos.y, parentPos.x);
 
       const newNodes: Node[] = [];
@@ -327,10 +329,12 @@ export default function Mindmap() {
             ),
             _plainLabel: child.label,
             _colorName: colorName,
+            _depth: newDepth,
+            _branchIndex: branchIndex,
           },
           style: {
             background: color.bg,
-            border: `1.5px dashed ${color.border}`,
+            border: `1.5px ${outlineStyle} ${color.border}`,
             borderRadius: '10px',
             padding: '8px 12px',
             color: color.text,
