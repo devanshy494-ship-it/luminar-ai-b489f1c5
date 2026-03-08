@@ -49,7 +49,7 @@ export default function Landing() {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden aurora-bg">
+    <div className="min-h-screen bg-background overflow-x-hidden aurora-bg">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-border/50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
