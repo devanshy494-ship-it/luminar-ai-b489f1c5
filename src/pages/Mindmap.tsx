@@ -382,7 +382,7 @@ export default function Mindmap() {
     );
   }
 
-  const canExpand = selectedNode && selectedNode.id !== 'center' && !expandedNodes.has(selectedNode.id) && expandingNode !== selectedNode.id;
+  const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
 
   return (
     <div className="h-screen flex flex-col bg-background">
