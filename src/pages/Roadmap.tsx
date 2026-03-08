@@ -194,7 +194,6 @@ export default function Roadmap() {
     setLoadingDeepDive(true);
     try {
       const step = roadmap.steps[stepIndex];
-      // Pass existing headings so AI doesn't repeat content
       const existingHeadings = lessons[stepIndex]?.sections.map((s) => s.heading) || [];
       const { data, error } = await supabase.functions.invoke('generate-lesson', {
         body: {
@@ -205,7 +204,6 @@ export default function Roadmap() {
       });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
-      // Replace deep dive content — only show the deep dive result, not append to original
       setLessons((prev) => {
         const existing = prev[stepIndex];
         if (!existing) return { ...prev, [stepIndex]: data };
@@ -226,6 +224,7 @@ export default function Roadmap() {
       setLoadingDeepDive(false);
     }
   };
+
   const handleExtraMaterials = async (stepIndex: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (showExtraMaterials === stepIndex) {
@@ -269,12 +268,14 @@ export default function Roadmap() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-background aurora-bg">
+      <nav className="border-b border-border/50 glass-nav sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-bold text-foreground">Luminar</span>
+            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center neon-glow-sm">
+              <BookOpen className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-4 w-4 mr-2" /> Dashboard
@@ -282,14 +283,16 @@ export default function Roadmap() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-10 max-w-3xl">
+      <main className="container mx-auto px-4 py-10 max-w-3xl relative z-10">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{topic.title}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 font-heading">
+            <span className="gradient-text">{topic.title}</span>
+          </h1>
           <p className="text-muted-foreground mb-4">Click on any step to study the lesson</p>
 
           {/* Topic-level actions */}
           <div className="flex flex-wrap gap-3 mb-6">
-            <Button onClick={handleOverallQuiz} disabled={generatingOverallQuiz} variant="default" size="sm">
+            <Button onClick={handleOverallQuiz} disabled={generatingOverallQuiz} variant="glow" size="sm">
               {generatingOverallQuiz ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
               Take Full Quiz
             </Button>
@@ -306,7 +309,7 @@ export default function Roadmap() {
               <span className="font-semibold text-foreground">{roadmap.progress}%</span>
             </div>
             <div className="h-3 bg-muted rounded-full overflow-hidden">
-              <motion.div className="h-full bg-primary rounded-full" initial={{ width: 0 }} animate={{ width: `${roadmap.progress}%` }} transition={{ duration: 0.5 }} />
+              <motion.div className="h-full gradient-primary rounded-full neon-glow-sm" initial={{ width: 0 }} animate={{ width: `${roadmap.progress}%` }} transition={{ duration: 0.5 }} />
             </div>
           </div>
 
@@ -315,7 +318,13 @@ export default function Roadmap() {
             {roadmap.steps.map((step, i) => (
               <motion.div
                 key={i}
-                className={`rounded-xl border transition-all ${step.completed ? 'bg-primary/5 border-primary/20' : 'bg-card border-border hover:border-primary/20'}`}
+                className={`rounded-2xl border transition-all ${
+                  step.completed
+                    ? 'glass-card border-primary/30 shadow-[0_0_16px_-4px_hsl(var(--neon-cyan)/0.2)]'
+                    : expandedStep === i
+                    ? 'glass-card border-primary/20'
+                    : 'glass-card border-border/50 hover:border-primary/20'
+                }`}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
@@ -331,7 +340,7 @@ export default function Roadmap() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className={`font-semibold font-serif text-lg ${step.completed ? 'text-primary' : 'text-foreground'}`}>
+                        <h3 className={`font-semibold font-heading text-lg ${step.completed ? 'text-primary' : 'text-foreground'}`}>
                           Step {i + 1}: {step.title}
                         </h3>
                         {expandedStep === i ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
@@ -345,7 +354,7 @@ export default function Roadmap() {
                             }
                             const resource = r as Resource;
                             const Icon = resource.type === 'video' ? Play : resource.type === 'docs' ? FileText : resource.type === 'exercise' ? Dumbbell : ExternalLink;
-                            const colorClass = resource.type === 'video' ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'text-primary bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'text-accent bg-accent/10 hover:bg-accent/20' : 'text-muted-foreground bg-muted hover:bg-muted/80';
+                            const colorClass = resource.type === 'video' ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'text-primary bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'text-secondary bg-secondary/10 hover:bg-secondary/20' : 'text-muted-foreground bg-muted hover:bg-muted/80';
                             return (
                               <a
                                 key={ri}
@@ -370,7 +379,7 @@ export default function Roadmap() {
                 <AnimatePresence>
                   {expandedStep === i && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3 }} className="overflow-hidden">
-                      <div className="px-6 pb-6 border-t border-border/50 pt-6 ml-10">
+                      <div className="px-6 pb-6 border-t border-border/30 pt-6 ml-10">
                         {/* Step-level actions */}
                         <div className="flex flex-wrap gap-2 mb-6">
                           <Button variant="outline" size="sm" onClick={(e) => handleStepFlashcards(i, e)} disabled={generatingStepFlashcards === i}>
@@ -404,7 +413,7 @@ export default function Roadmap() {
                                   <p className="text-sm text-muted-foreground">Finding extra materials...</p>
                                 </div>
                               ) : extraMaterials[i] ? (
-                                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                                <div className="rounded-2xl border border-border/50 glass-card p-4 space-y-4">
                                   {/* Videos */}
                                   {extraMaterials[i].videos?.length > 0 && (
                                     <div>
@@ -413,7 +422,7 @@ export default function Roadmap() {
                                       </h5>
                                       <div className="space-y-2">
                                         {extraMaterials[i].videos.map((m, mi) => (
-                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                             <Play className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
@@ -433,7 +442,7 @@ export default function Roadmap() {
                                       </h5>
                                       <div className="space-y-2">
                                         {extraMaterials[i].websites.map((m, mi) => (
-                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                             <Globe className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
@@ -449,12 +458,12 @@ export default function Roadmap() {
                                   {extraMaterials[i].books?.length > 0 && (
                                     <div>
                                       <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                        <BookOpen className="h-4 w-4 text-accent-foreground" /> Books
+                                        <BookOpen className="h-4 w-4 text-secondary" /> Books
                                       </h5>
                                       <div className="space-y-2">
                                         {extraMaterials[i].books.map((m, mi) => (
-                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
-                                            <BookOpen className="h-3.5 w-3.5 text-accent-foreground mt-0.5 shrink-0" />
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                                            <BookOpen className="h-3.5 w-3.5 text-secondary mt-0.5 shrink-0" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
                                               <p className="text-xs text-muted-foreground">{m.description}</p>
@@ -469,12 +478,12 @@ export default function Roadmap() {
                                   {extraMaterials[i].apps?.length > 0 && (
                                     <div>
                                       <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                                        <Smartphone className="h-4 w-4 text-secondary-foreground" /> Apps & Tools
+                                        <Smartphone className="h-4 w-4 text-warning" /> Apps & Tools
                                       </h5>
                                       <div className="space-y-2">
                                         {extraMaterials[i].apps.map((m, mi) => (
-                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
-                                            <Smartphone className="h-3.5 w-3.5 text-secondary-foreground mt-0.5 shrink-0" />
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
+                                            <Smartphone className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
                                               <p className="text-xs text-muted-foreground">{m.description}</p>
@@ -493,7 +502,7 @@ export default function Roadmap() {
                                       </h5>
                                       <div className="space-y-2">
                                         {extraMaterials[i].other.map((m, mi) => (
-                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-lg hover:bg-muted/50 transition-colors group">
                                             <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
                                             <div className="min-w-0">
                                               <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
@@ -521,7 +530,7 @@ export default function Roadmap() {
                                   value={deepDiveQuery}
                                   onChange={(e) => setDeepDiveQuery(e.target.value)}
                                   placeholder="Enter a sub-topic to dive deeper into..."
-                                  className="flex-1 px-3 py-2 rounded-lg border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                                  className="flex-1 px-3 py-2 rounded-lg border border-border/50 bg-background/50 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
                                   onKeyDown={(e) => e.key === 'Enter' && handleDeepDive(i)}
                                 />
                                 <Button size="sm" onClick={() => handleDeepDive(i)} disabled={loadingDeepDive || !deepDiveQuery.trim()}>
@@ -550,7 +559,7 @@ export default function Roadmap() {
                               </div>
                             ))}
                             {lessons[i].keyTakeaways && lessons[i].keyTakeaways.length > 0 && (
-                              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                              <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10">
                                 <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
                                   <Lightbulb className="h-4 w-4 text-primary" /> Key Takeaways
                                 </h4>
@@ -579,11 +588,10 @@ export default function Roadmap() {
             ))}
           </div>
 
-          {/* Bottom sections: Overall Quiz & All Flashcards */}
+          {/* Bottom sections */}
           <div className="mt-12 space-y-4">
-            {/* Overall Quiz */}
             <motion.div
-              className="rounded-xl border border-border bg-card p-6"
+              className="rounded-2xl border border-border/50 glass-card p-6"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: roadmap.steps.length * 0.05 }}
@@ -594,31 +602,30 @@ export default function Roadmap() {
                     <Target className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold font-serif text-lg text-foreground">Overall Quiz</h3>
+                    <h3 className="font-semibold font-heading text-lg text-foreground">Overall Quiz</h3>
                     <p className="text-sm text-muted-foreground">Test your knowledge across all steps</p>
                   </div>
                 </div>
-                <Button onClick={handleOverallQuiz} disabled={generatingOverallQuiz}>
+                <Button variant="glow" size="sm" onClick={handleOverallQuiz} disabled={generatingOverallQuiz}>
                   {generatingOverallQuiz ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
                   Take Quiz
                 </Button>
               </div>
             </motion.div>
 
-            {/* All Flashcards */}
             <motion.div
-              className="rounded-xl border border-border bg-card p-6"
+              className="rounded-2xl border border-border/50 glass-card p-6"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: roadmap.steps.length * 0.05 + 0.05 }}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Layers className="h-5 w-5 text-primary" />
+                  <div className="h-10 w-10 rounded-full bg-secondary/10 flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-secondary" />
                   </div>
                   <div>
-                    <h3 className="font-semibold font-serif text-lg text-foreground">All Flashcards</h3>
+                    <h3 className="font-semibold font-heading text-lg text-foreground">All Flashcards</h3>
                     <p className="text-sm text-muted-foreground">
                       {flashcardCount > 0
                         ? `${flashcardCount} cards compiled from all steps`
