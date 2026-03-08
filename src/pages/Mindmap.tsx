@@ -382,9 +382,7 @@ export default function Mindmap() {
     );
   }
 
-  const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
-
-  return (
+  const canExpand = selectedNode && selectedNode.id !== 'center' && eturn (
     <div className="h-screen flex flex-col bg-background">
       {/* Nav */}
       <nav className="border-b border-border/50 glass-nav sticky top-0 z-50 shrink-0">
@@ -467,9 +465,7 @@ export default function Mindmap() {
                 </p>
                 {(selectedNode.data as any)?._plainLabel && (
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    {expandedNodes.has(selectedNode.id) ? 'Already expanded' : 'Click below to dive deeper'}
-                  </p>
-                )}
+                    {expandedNodes.has(selectedNode.id) ? 'Click below to dive deeper )}
                 <Button
                   size="sm"
                   className="w-full text-xs"
