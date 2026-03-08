@@ -334,6 +334,30 @@ export default function Roadmap() {
               <Download className="h-4 w-4 mr-2" />
               Export for Notion
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={generatingMindmap}
+              onClick={async () => {
+                setGeneratingMindmap(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('generate-mindmap', {
+                    body: { topic: topic.title },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error(data.error); return; }
+                  toast.success('Mindmap generated!');
+                  navigate('/mindmap', { state: { mindmap: data.mindmap, fromTopic: topic.title, topicId: topic.id } });
+                } catch (e: any) {
+                  toast.error(e?.message || 'Failed to generate mindmap');
+                } finally {
+                  setGeneratingMindmap(false);
+                }
+              }}
+            >
+              {generatingMindmap ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GitBranch className="h-4 w-4 mr-2" />}
+              Mindmap
+            </Button>
           </div>
 
           <NotionExportDialog
