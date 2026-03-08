@@ -328,6 +328,18 @@ export default function FlashcardCreator() {
               />
             )}
 
+            {/* Focus/Scope Instructions */}
+            <div className="mt-4">
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Focus Instructions <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Textarea
+                placeholder="e.g., Focus only on chapter 3, or only cover key formulas, or narrow down to specific concepts..."
+                value={scopeInstructions}
+                onChange={(e) => setScopeInstructions(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+
             {error && (
               <p className="text-sm text-destructive mt-3 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" /> {error}
