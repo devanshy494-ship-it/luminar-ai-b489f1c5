@@ -496,21 +496,34 @@ export default function Mindmap() {
                 </p>
                 {(selectedNode.data as any)?._plainLabel && (
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    Click below to dive deeper
+                    {isExpanded ? 'Expand further or collapse' : 'Click below to dive deeper'}
                   </p>
                 )}
-                <Button
-                  size="sm"
-                  className="w-full text-xs"
-                  disabled={!canExpand || !!expandingNode}
-                  onClick={() => handleExpandNode(selectedNode)}
-                >
-                  {expandingNode === selectedNode.id ? (
-                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
-                  ) : (
-                    <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    className="w-full text-xs"
+                    disabled={!canExpand || !!expandingNode}
+                    onClick={() => handleExpandNode(selectedNode)}
+                  >
+                    {expandingNode === selectedNode.id ? (
+                      <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
+                    ) : (
+                      <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
+                    )}
+                  </Button>
+                  {isExpanded && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-xs"
+                      disabled={!!expandingNode}
+                      onClick={() => handleCollapseNode(selectedNode)}
+                    >
+                      <Shrink className="h-3 w-3 mr-1" /> Collapse
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             </motion.div>
           )}
