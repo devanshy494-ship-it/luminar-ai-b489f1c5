@@ -156,6 +156,9 @@ export default function FlashcardCreator() {
         if (!extractedContent) throw new Error('Please upload a file first');
         body.content = extractedContent;
       }
+      if (scopeInstructions.trim()) {
+        body.scope = scopeInstructions.trim();
+      }
 
       const { data, error: fnError } = await supabase.functions.invoke('analyze-document', { body });
       if (fnError) throw fnError;
