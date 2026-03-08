@@ -335,6 +335,40 @@ export default function Learn() {
             </motion.div>
           )}
 
+          {/* Strict/Contextual toggle - only shown when source is attached */}
+          {hasSource && !showSourcePanel && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              className="mb-4"
+            >
+              <div className="flex items-center gap-3 p-3 rounded-xl glass-card border border-border/50">
+                <button
+                  onClick={() => setStrictMode(false)}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    !strictMode
+                      ? 'bg-primary/10 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  🌐 Contextual
+                  <span className="block text-xs font-normal mt-0.5 opacity-70">AI supplements gaps</span>
+                </button>
+                <button
+                  onClick={() => setStrictMode(true)}
+                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                    strictMode
+                      ? 'bg-primary/10 text-primary border border-primary/30'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  📄 Strict
+                  <span className="block text-xs font-normal mt-0.5 opacity-70">Only from your material</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* Source panel */}
           <AnimatePresence>
             {showSourcePanel && (
