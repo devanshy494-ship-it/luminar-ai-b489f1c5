@@ -104,6 +104,45 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
   }
 }
 
+async function cleanupTranscript(rawTranscript: string, videoTitle: string): Promise<string> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) return rawTranscript; // fallback to raw if no key
+
+  // Truncate to ~12000 chars for cleanup to stay within limits
+  const truncated = rawTranscript.length > 12000 ? rawTranscript.slice(0, 12000) : rawTranscript;
+
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: [
+          {
+            role: "system",
+            content: `You are a transcript editor. Fix grammar, punctuation, capitalization, and obvious speech-to-text errors in this YouTube video transcript. The video is titled "${videoTitle}". Keep ALL the original meaning and content — only fix errors. Add proper paragraph breaks where topics change. Do NOT summarize, skip, or add content. Return ONLY the cleaned transcript text.`,
+          },
+          { role: "user", content: truncated },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      await response.text();
+      return rawTranscript; // fallback
+    }
+
+    const data = await response.json();
+    const cleaned = data.choices?.[0]?.message?.content;
+    return cleaned || rawTranscript;
+  } catch {
+    return rawTranscript; // fallback
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -125,10 +164,13 @@ serve(async (req) => {
     }
 
     // Fetch transcript and title in parallel
-    const [transcript, title] = await Promise.all([
+    const [rawTranscript, title] = await Promise.all([
       fetchTranscript(videoId),
       fetchVideoTitle(videoId),
     ]);
+
+    // Clean up transcript with AI to fix speech-to-text errors
+    const transcript = await cleanupTranscript(rawTranscript, title);
 
     return new Response(
       JSON.stringify({ transcript, title, videoId, charCount: transcript.length }),
