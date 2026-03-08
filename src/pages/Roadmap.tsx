@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import NotionExportDialog from '@/components/NotionExportDialog';
 
 interface Resource {
   name: string;
