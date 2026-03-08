@@ -366,7 +366,7 @@ export default function FlashcardCreator() {
             )}
 
             <Button
-              onClick={handleAnalyze}
+              onClick={() => handleAnalyze()}
               className="w-full mt-6 h-12"
               disabled={
                 (inputMode === 'file' && !extractedContent) ||
