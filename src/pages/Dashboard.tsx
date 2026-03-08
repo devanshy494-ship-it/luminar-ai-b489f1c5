@@ -229,7 +229,7 @@ export default function Dashboard() {
 
         {/* Tabs */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
-          <Tabs defaultValue="roadmaps" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" id="dashboard-tabs">
             <div className="flex items-center justify-between mb-6">
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
