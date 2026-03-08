@@ -444,6 +444,13 @@ export default function Dashboard() {
                 transition={{ duration: 0.4, ease: 'easeOut' }}
                 className={highlightTab && activeTab === 'quizzes' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
               >
+                <QuizCreator />
+                
+                {/* Quiz History */}
+                <div className="mt-10">
+                  <h3 className="font-heading font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                    <History className="h-5 w-5 text-warning" /> Quiz Results
+                  </h3>
               {loadingQuizzes ? (
                 <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
               ) : Object.keys(quizByTopic).length > 0 ? (
