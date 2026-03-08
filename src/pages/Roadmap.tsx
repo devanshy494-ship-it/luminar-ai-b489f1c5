@@ -694,6 +694,16 @@ export default function Roadmap() {
                                 </ul>
                               </div>
                             )}
+                            {/* Per-lesson word count */}
+                            {(() => {
+                              const lessonWords = lessons[i].sections.reduce((sum, s) => sum + s.content.split(/\s+/).filter(Boolean).length + s.heading.split(/\s+/).filter(Boolean).length, 0)
+                                + lessons[i].keyTakeaways.reduce((sum, t) => sum + t.split(/\s+/).filter(Boolean).length, 0);
+                              return (
+                                <p className="text-[11px] text-muted-foreground/60 mt-3 text-right">
+                                  {lessonWords.toLocaleString()} words
+                                </p>
+                              );
+                            })()}
                             {!step.completed && (
                               <Button variant="outline" size="sm" onClick={(e) => toggleStep(i, e)} className="mt-2">
                                 <CheckCircle2 className="h-4 w-4 mr-2" /> Mark as Complete
