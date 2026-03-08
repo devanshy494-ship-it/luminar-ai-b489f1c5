@@ -396,6 +396,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <TabsList className="glass-card border border-border/50">
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
+                <TabsTrigger value="mindmaps"><GitBranch className="h-4 w-4 mr-1.5" /> Mindmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
                 <TabsTrigger value="quizzes"><Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
                 <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
