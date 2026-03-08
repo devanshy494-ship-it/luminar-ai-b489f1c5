@@ -181,7 +181,7 @@ Make the roadmap progressive — each step builds on the previous one.${strictIn
                 properties: {
                   steps: {
                     type: "array",
-                    minItems: 8,
+                    minItems: isStrict ? 4 : 8,
                     maxItems: 12,
                     items: {
                       type: "object",
