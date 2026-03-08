@@ -233,7 +233,8 @@ export default function Dashboard() {
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
-                <TabsTriggerCrosshairCrosshairCr value="quizzes"><Cr value="quizzes"><Cr value="quizzes"><CrosshairbsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
+                <TabsTrigger value="quizzes"><Crosshair className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
+                <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
                 <Plus className="h-4 w-4 mr-2" /> New Topic
