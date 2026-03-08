@@ -23,3 +23,15 @@ verify_jwt = false
 
 [functions.youtube-flashcards]
 verify_jwt = false
+
+[functions.generate-mindmap]
+verify_jwt = false
+
+[functions.youtube-quiz]
+verify_jwt = false
+
+[functions.generate-document-quiz]
+verify_jwt = false
+
+[functions.generate-extra-materials]
+verify_jwt = false
