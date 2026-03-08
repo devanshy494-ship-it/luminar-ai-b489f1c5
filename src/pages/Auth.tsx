@@ -11,11 +11,13 @@ import { useState } from 'react';
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { user, signInWithGoogle } = useAuth();
+  const { user, isAdmin, signInWithGoogle } = useAuth();
 
   useEffect(() => {
-    if (user) navigate('/dashboard', { replace: true });
-  }, [user, navigate]);
+    if (user) {
+      navigate(isAdmin ? '/admin' : '/dashboard', { replace: true });
+    }
+  }, [user, isAdmin, navigate]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
