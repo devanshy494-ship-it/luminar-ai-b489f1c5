@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   useEffect(() => {
     if (!user) return;
