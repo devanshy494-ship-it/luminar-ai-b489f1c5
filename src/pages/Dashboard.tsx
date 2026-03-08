@@ -372,7 +372,7 @@ export default function Dashboard() {
                 {/* Quiz History */}
                 <div>
                   <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
-                    <Target className="h-5 w-5 text-success" /> Quiz Results
+                    <Target className="h-5 w-5 text-warning" /> Quiz Results
                   </h3>
                   {loadingQuizzes ? (
                     <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
