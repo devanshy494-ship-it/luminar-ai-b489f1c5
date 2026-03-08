@@ -116,6 +116,10 @@ export default function FlashcardCreator() {
     }
   };
 
+  const isYouTubeUrl = (urlStr: string) => {
+    return /(?:youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)/.test(urlStr);
+  };
+
   const handleAnalyze = async () => {
     setError('');
     setStep('analyzing');
@@ -124,7 +128,21 @@ export default function FlashcardCreator() {
       let body: any = {};
       if (inputMode === 'url') {
         if (!url.trim()) throw new Error('Please enter a URL');
-        body.url = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+        const cleanUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
+
+        // Check if YouTube URL — fetch transcript first
+        if (isYouTubeUrl(cleanUrl)) {
+          const { data: ytData, error: ytError } = await supabase.functions.invoke('youtube-transcript', {
+            body: { url: cleanUrl },
+          });
+          if (ytError) throw ytError;
+          if (ytData?.error) throw new Error(ytData.error);
+
+          body.content = ytData.transcript;
+          setExtractedContent(ytData.transcript);
+        } else {
+          body.url = cleanUrl;
+        }
       } else if (inputMode === 'text') {
         if (textContent.trim().length < 50) throw new Error('Please enter more text (at least 50 characters)');
         body.content = textContent.trim();
@@ -141,7 +159,6 @@ export default function FlashcardCreator() {
       const analysisData = data.analysis;
       analysisData.topics = analysisData.topics.map((t: any) => ({ ...t, selected: true }));
 
-      // If URL was used and content was fetched server-side, save it
       if (inputMode === 'url' && !extractedContent) {
         setExtractedContent('[Content fetched from URL]');
       }
