@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,6 +25,20 @@ interface Step {
 interface LessonData {
   sections: { heading: string; content: string }[];
   keyTakeaways: string[];
+}
+
+interface ExtraMaterial {
+  name: string;
+  url: string;
+  description: string;
+}
+
+interface ExtraMaterials {
+  videos: ExtraMaterial[];
+  websites: ExtraMaterial[];
+  books: ExtraMaterial[];
+  apps: ExtraMaterial[];
+  other: ExtraMaterial[];
 }
 
 interface RoadmapData {
@@ -56,6 +70,9 @@ export default function Roadmap() {
   const [loadingDeepDive, setLoadingDeepDive] = useState(false);
   const [generatingOverallQuiz, setGeneratingOverallQuiz] = useState(false);
   const [flashcardCount, setFlashcardCount] = useState(0);
+  const [extraMaterials, setExtraMaterials] = useState<Record<number, ExtraMaterials>>({});
+  const [loadingExtraMaterials, setLoadingExtraMaterials] = useState<number | null>(null);
+  const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -209,6 +226,30 @@ export default function Roadmap() {
       setLoadingDeepDive(false);
     }
   };
+  const handleExtraMaterials = async (stepIndex: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showExtraMaterials === stepIndex) {
+      setShowExtraMaterials(null);
+      return;
+    }
+    setShowExtraMaterials(stepIndex);
+    if (extraMaterials[stepIndex]) return;
+    setLoadingExtraMaterials(stepIndex);
+    try {
+      const step = roadmap!.steps[stepIndex];
+      const { data, error } = await supabase.functions.invoke('generate-extra-materials', {
+        body: { topicTitle: topic!.title, stepTitle: step.title, stepDescription: step.description },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setExtraMaterials((prev) => ({ ...prev, [stepIndex]: data }));
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to fetch extra materials');
+      setShowExtraMaterials(null);
+    } finally {
+      setLoadingExtraMaterials(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -340,6 +381,10 @@ export default function Roadmap() {
                             {generatingStepQuiz === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Target className="h-3 w-3 mr-1" />}
                             Quiz
                           </Button>
+                          <Button variant="outline" size="sm" onClick={(e) => handleExtraMaterials(i, e)} disabled={loadingExtraMaterials === i}>
+                            {loadingExtraMaterials === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Library className="h-3 w-3 mr-1" />}
+                            Extra Materials
+                          </Button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeepDiveStep(deepDiveStep === i ? null : i); }}
                             className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
@@ -348,6 +393,123 @@ export default function Roadmap() {
                             <Search className="h-3.5 w-3.5 text-primary" />
                           </button>
                         </div>
+
+                        {/* Extra Materials Panel */}
+                        <AnimatePresence>
+                          {showExtraMaterials === i && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mb-6">
+                              {loadingExtraMaterials === i ? (
+                                <div className="flex flex-col items-center py-6">
+                                  <Loader2 className="h-6 w-6 text-primary animate-spin mb-2" />
+                                  <p className="text-sm text-muted-foreground">Finding extra materials...</p>
+                                </div>
+                              ) : extraMaterials[i] ? (
+                                <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+                                  {/* Videos */}
+                                  {extraMaterials[i].videos?.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                        <Play className="h-4 w-4 text-destructive" /> Videos
+                                      </h5>
+                                      <div className="space-y-2">
+                                        {extraMaterials[i].videos.map((m, mi) => (
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                            <Play className="h-3.5 w-3.5 text-destructive mt-0.5 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
+                                              <p className="text-xs text-muted-foreground">{m.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Websites */}
+                                  {extraMaterials[i].websites?.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                        <Globe className="h-4 w-4 text-primary" /> Websites & Tutorials
+                                      </h5>
+                                      <div className="space-y-2">
+                                        {extraMaterials[i].websites.map((m, mi) => (
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                            <Globe className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
+                                              <p className="text-xs text-muted-foreground">{m.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Books */}
+                                  {extraMaterials[i].books?.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                        <BookOpen className="h-4 w-4 text-accent-foreground" /> Books
+                                      </h5>
+                                      <div className="space-y-2">
+                                        {extraMaterials[i].books.map((m, mi) => (
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                            <BookOpen className="h-3.5 w-3.5 text-accent-foreground mt-0.5 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
+                                              <p className="text-xs text-muted-foreground">{m.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Apps */}
+                                  {extraMaterials[i].apps?.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                        <Smartphone className="h-4 w-4 text-secondary-foreground" /> Apps & Tools
+                                      </h5>
+                                      <div className="space-y-2">
+                                        {extraMaterials[i].apps.map((m, mi) => (
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                            <Smartphone className="h-3.5 w-3.5 text-secondary-foreground mt-0.5 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
+                                              <p className="text-xs text-muted-foreground">{m.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {/* Other */}
+                                  {extraMaterials[i].other?.length > 0 && (
+                                    <div>
+                                      <h5 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                                        <MoreHorizontal className="h-4 w-4 text-muted-foreground" /> Other Resources
+                                      </h5>
+                                      <div className="space-y-2">
+                                        {extraMaterials[i].other.map((m, mi) => (
+                                          <a key={mi} href={m.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 p-2 rounded-md hover:bg-muted/50 transition-colors group">
+                                            <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                                            <div className="min-w-0">
+                                              <p className="text-sm font-medium text-foreground group-hover:text-primary truncate">{m.name}</p>
+                                              <p className="text-xs text-muted-foreground">{m.description}</p>
+                                            </div>
+                                            <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-0.5 opacity-0 group-hover:opacity-100" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : null}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
 
                         {/* Deep dive input */}
                         <AnimatePresence>
