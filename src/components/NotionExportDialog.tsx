@@ -66,6 +66,61 @@ function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: nu
   return md;
 }
 
+function generateStepMarkdown(
+  topicTitle: string,
+  step: Step,
+  stepIndex: number,
+  lesson?: LessonData,
+  materials?: ExtraMaterials
+): string {
+  let md = `# Step ${stepIndex + 1}: ${step.title}\n\n`;
+  md += `*Part of: ${topicTitle}*\n\n`;
+  md += `${step.description}\n\n`;
+  if (step.estimatedTime) {
+    md += `⏱️ *Estimated time: ${step.estimatedTime}*\n\n`;
+  }
+
+  if (lesson) {
+    md += `---\n\n## 📖 Lesson\n\n`;
+    lesson.sections.forEach((section) => {
+      md += `### ${section.heading}\n\n${section.content}\n\n`;
+    });
+    if (lesson.keyTakeaways.length > 0) {
+      md += `### 🔑 Key Takeaways\n\n`;
+      lesson.keyTakeaways.forEach((t) => {
+        md += `- ${t}\n`;
+      });
+      md += `\n`;
+    }
+  }
+
+  if (materials) {
+    const categoryConfig = [
+      { key: 'videos' as const, emoji: '🎥', label: 'Videos' },
+      { key: 'websites' as const, emoji: '🌐', label: 'Websites' },
+      { key: 'books' as const, emoji: '📖', label: 'Books' },
+      { key: 'apps' as const, emoji: '📱', label: 'Apps' },
+      { key: 'other' as const, emoji: '📌', label: 'Other' },
+    ];
+    const hasContent = categoryConfig.some((c) => materials[c.key]?.length > 0);
+    if (hasContent) {
+      md += `---\n\n## 📚 Extra Materials\n\n`;
+      categoryConfig.forEach(({ key, emoji, label }) => {
+        const items = materials[key];
+        if (!items || items.length === 0) return;
+        md += `### ${emoji} ${label}\n\n`;
+        items.forEach((item) => {
+          md += `- **[${item.name}](${item.url})**\n`;
+          if (item.description) md += `  ${item.description}\n`;
+        });
+        md += `\n`;
+      });
+    }
+  }
+
+  return md;
+}
+
 function generateExtraMaterialsMarkdown(
   topicTitle: string,
   steps: Step[],
