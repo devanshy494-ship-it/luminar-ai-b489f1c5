@@ -96,7 +96,7 @@ Provide 3-5 items per category. Only include resources that are genuinely releva
           },
           {
             role: "user",
-            content: `Topic: "${topicTitle}"\nStep: "${stepTitle}"\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n\nProvide categorized extra learning materials for this step.`,
+            content: `Topic: "${topicTitle}"\nStep: "${stepTitle}" (Step ${stepIndex !== undefined ? stepIndex + 1 : '?'} of ${totalSteps || '?'})\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n${allSteps ? `\nFull roadmap steps:\n${allSteps.map((s: any) => `${s.index + 1}. ${s.title}: ${s.description}`).join('\n')}` : ''}\n${generationContext ? `\nAdditional learning context: ${JSON.stringify(generationContext)}` : ''}\n\nProvide categorized extra learning materials specifically relevant to this step, considering where the learner is in their journey.`,
           },
         ],
         tools: [

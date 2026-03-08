@@ -236,8 +236,18 @@ export default function Roadmap() {
     setLoadingExtraMaterials(stepIndex);
     try {
       const step = roadmap!.steps[stepIndex];
+      const allSteps = roadmap!.steps.map((s, idx) => ({ index: idx, title: s.title, description: s.description }));
+      const { data: topicData } = await supabase.from('topics').select('generation_context').eq('id', topicId).single();
       const { data, error } = await supabase.functions.invoke('generate-extra-materials', {
-        body: { topicTitle: topic!.title, stepTitle: step.title, stepDescription: step.description },
+        body: {
+          topicTitle: topic!.title,
+          stepTitle: step.title,
+          stepDescription: step.description,
+          stepIndex,
+          totalSteps: roadmap!.steps.length,
+          allSteps,
+          generationContext: topicData?.generation_context || null,
+        },
       });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
