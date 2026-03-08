@@ -49,9 +49,25 @@ interface NotionExportDialogProps {
   stepIndex?: number | null; // null = full export, number = single step
 }
 
-function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: number): string {
+function generateRoadmapMarkdown(
+  topicTitle: string,
+  steps: Step[],
+  progress: number,
+  lessons?: Record<number, LessonData>,
+  extraMaterials?: Record<number, ExtraMaterials>,
+  includeLessons?: boolean,
+  includeMaterials?: boolean
+): string {
   let md = `# 🗺️ Roadmap: ${topicTitle}\n\n`;
   md += `**Progress:** ${progress}%\n\n---\n\n`;
+
+  const categoryConfig = [
+    { key: 'videos' as const, emoji: '🎥', label: 'Videos' },
+    { key: 'websites' as const, emoji: '🌐', label: 'Websites' },
+    { key: 'books' as const, emoji: '📖', label: 'Books' },
+    { key: 'apps' as const, emoji: '📱', label: 'Apps' },
+    { key: 'other' as const, emoji: '📌', label: 'Other' },
+  ];
 
   steps.forEach((step, i) => {
     const status = step.completed ? '✅' : '⬜';
@@ -60,6 +76,42 @@ function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: nu
     if (step.estimatedTime) {
       md += `⏱️ *Estimated time: ${step.estimatedTime}*\n\n`;
     }
+
+    // Include lesson content inline
+    if (includeLessons && lessons?.[i]) {
+      const lesson = lessons[i];
+      md += `### 📖 Lesson\n\n`;
+      lesson.sections.forEach((section) => {
+        md += `#### ${section.heading}\n\n${section.content}\n\n`;
+      });
+      if (lesson.keyTakeaways.length > 0) {
+        md += `#### 🔑 Key Takeaways\n\n`;
+        lesson.keyTakeaways.forEach((t) => {
+          md += `- ${t}\n`;
+        });
+        md += `\n`;
+      }
+    }
+
+    // Include materials inline
+    if (includeMaterials && extraMaterials?.[i]) {
+      const materials = extraMaterials[i];
+      const hasContent = categoryConfig.some((c) => materials[c.key]?.length > 0);
+      if (hasContent) {
+        md += `### 📚 Extra Materials\n\n`;
+        categoryConfig.forEach(({ key, emoji, label }) => {
+          const items = materials[key];
+          if (!items || items.length === 0) return;
+          md += `#### ${emoji} ${label}\n\n`;
+          items.forEach((item) => {
+            md += `- **[${item.name}](${item.url})**\n`;
+            if (item.description) md += `  ${item.description}\n`;
+          });
+          md += `\n`;
+        });
+      }
+    }
+
     md += `---\n\n`;
   });
 
@@ -204,7 +256,9 @@ export default function NotionExportDialog({
   const isSingleStep = stepIndex != null;
   const materialsCount = Object.keys(extraMaterials).length;
   const hasMaterials = isSingleStep ? !!extraMaterials[stepIndex] : materialsCount > 0;
-  const hasLesson = isSingleStep ? !!lessons[stepIndex] : false;
+  const lessonsCount = Object.keys(lessons).length;
+  const hasLessons = isSingleStep ? !!lessons[stepIndex] : lessonsCount > 0;
+  const hasLesson = hasLessons;
 
   const handleExport = async () => {
     setExporting(true);
@@ -223,16 +277,17 @@ export default function NotionExportDialog({
         );
         downloadMarkdown(`Step-${stepIndex + 1}-${safeName}.md`, stepMd);
       } else {
-        // Full export
-        if (exportRoadmap) {
-          const roadmapMd = generateRoadmapMarkdown(topicTitle, steps, progress);
-          downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
-        }
-
-        if (exportMaterials && hasMaterials) {
-          const materialsMd = generateExtraMaterialsMarkdown(topicTitle, steps, extraMaterials);
-          downloadMarkdown(`Extra-Materials-${safeName}.md`, materialsMd);
-        }
+        // Full detailed export — one comprehensive file
+        const roadmapMd = generateRoadmapMarkdown(
+          topicTitle,
+          steps,
+          progress,
+          lessons,
+          extraMaterials,
+          exportLesson && hasLessons,
+          exportMaterials && hasMaterials
+        );
+        downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
       }
 
       await new Promise((r) => setTimeout(r, 300));
@@ -306,20 +361,23 @@ export default function NotionExportDialog({
             </>
           ) : (
             <>
-              {/* Full Roadmap checkbox */}
+              {/* Lessons checkbox */}
               <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
                 <Checkbox
-                  checked={exportRoadmap}
-                  onCheckedChange={(v) => setExportRoadmap(v === true)}
+                  checked={exportLesson}
+                  onCheckedChange={(v) => setExportLesson(v === true)}
+                  disabled={!hasLessons}
                   className="mt-0.5"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 font-medium text-foreground">
                     <BookOpen className="h-4 w-4 text-primary" />
-                    Roadmap
+                    Lesson Content
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {steps.length} steps with descriptions, progress, and status
+                    {hasLessons
+                      ? `Lessons loaded for ${lessonsCount} of ${steps.length} steps`
+                      : 'No lessons loaded — expand steps first to generate lessons'}
                   </p>
                 </div>
               </label>
@@ -363,7 +421,7 @@ export default function NotionExportDialog({
           </Button>
           <Button
             onClick={handleExport}
-            disabled={exporting || (isSingleStep ? (!exportLesson && !exportMaterials) : (!exportRoadmap && !exportMaterials))}
+            disabled={exporting || (isSingleStep ? (!exportLesson && !exportMaterials) : false)}
             size="sm"
             variant="glow"
           >
@@ -372,7 +430,7 @@ export default function NotionExportDialog({
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            {isSingleStep ? 'Download Step' : `Download ${[exportRoadmap && 'Roadmap', exportMaterials && hasMaterials && 'Materials'].filter(Boolean).join(' & ')}`}
+            {isSingleStep ? 'Download Step' : 'Download Detailed Roadmap'}
           </Button>
         </DialogFooter>
       </DialogContent>
