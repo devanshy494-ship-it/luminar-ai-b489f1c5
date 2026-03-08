@@ -218,12 +218,15 @@ export default function FlashcardCreator() {
     }
 
     try {
-      const body = {
+      const body: any = {
         content: extractedContent || `[URL content: ${url}]`,
         title: analysis.title,
         selectedTopics: selectedTopics.map((t) => ({ name: t.name, subtopics: t.subtopics })),
         totalCards,
       };
+      if (scopeInstructions.trim()) {
+        body.scope = scopeInstructions.trim();
+      }
 
       // If we only have URL content, also pass the URL
       if (inputMode === 'url' && !extractedContent) {
