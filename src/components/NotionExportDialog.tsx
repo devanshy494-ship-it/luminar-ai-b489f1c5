@@ -421,7 +421,7 @@ export default function NotionExportDialog({
           </Button>
           <Button
             onClick={handleExport}
-            disabled={exporting || (isSingleStep ? (!exportLesson && !exportMaterials) : (!exportRoadmap && !exportMaterials))}
+            disabled={exporting || (isSingleStep ? (!exportLesson && !exportMaterials) : false)}
             size="sm"
             variant="glow"
           >
@@ -430,7 +430,7 @@ export default function NotionExportDialog({
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            {isSingleStep ? 'Download Step' : `Download ${[exportRoadmap && 'Roadmap', exportMaterials && hasMaterials && 'Materials'].filter(Boolean).join(' & ')}`}
+            {isSingleStep ? 'Download Step' : 'Download Detailed Roadmap'}
           </Button>
         </DialogFooter>
       </DialogContent>
