@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    const { topic, sourceContent } = await req.json();
+    const { topic, sourceContent, strictMode } = await req.json();
     if (!topic || typeof topic !== "string" || topic.trim().length === 0 || topic.length > 200) {
       return new Response(JSON.stringify({ error: "Invalid topic" }), {
         status: 400,
@@ -129,6 +129,7 @@ serve(async (req) => {
 
     const hasSource = sourceContent && typeof sourceContent === "string" && sourceContent.length > 50;
     const truncatedSource = hasSource ? sourceContent.slice(0, 15000) : "";
+    const isStrict = hasSource && strictMode === true;
 
     // ── Phase 1: AI generates roadmap structure with search queries ──
     const systemPrompt = `You are an expert learning roadmap generator. Given a topic${hasSource ? " and source material" : ""}, create a comprehensive learning roadmap with 8-12 steps from beginner to advanced.
