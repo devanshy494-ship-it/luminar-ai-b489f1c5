@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, RotateCcw, ChevronLeft, ChevronRight, Loader2, Plus } from 'lucide-react';
+import { BookOpen, ArrowLeft, RotateCcw, ChevronLeft, ChevronRight, Loader2, Plus, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,12 +13,14 @@ interface Flashcard {
   back: string;
   mastery_level: number;
   step_index: number | null;
+  group_id: string | null;
 }
 
 export default function Flashcards() {
   const { topicId } = useParams();
   const [searchParams] = useSearchParams();
   const stepFilter = searchParams.get('step');
+  const groupFilter = searchParams.get('group');
   const navigate = useNavigate();
   const { user } = useAuth();
   const [cards, setCards] = useState<Flashcard[]>([]);
@@ -29,13 +31,20 @@ export default function Flashcards() {
   const [topicTitle, setTopicTitle] = useState('');
   const [stepTitle, setStepTitle] = useState('');
   const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
+  const [groupName, setGroupName] = useState<string | null>(null);
+
+  // Rename state
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     async function fetchCards() {
       if (!topicId || !user) return;
 
       let query = supabase.from('flashcards').select('*').eq('topic_id', topicId).order('created_at');
-      if (stepFilter !== null) {
+      if (groupFilter) {
+        query = query.eq('group_id', groupFilter);
+      } else if (stepFilter !== null) {
         query = query.eq('step_index', parseInt(stepFilter));
       }
 
@@ -46,6 +55,12 @@ export default function Flashcards() {
 
       if (cardsRes.data) setCards(cardsRes.data);
       if (topicRes.data) setTopicTitle(topicRes.data.title);
+
+      // Fetch group name if viewing by group
+      if (groupFilter) {
+        const { data: grp } = await supabase.from('flashcard_groups').select('name').eq('id', groupFilter).single();
+        if (grp) setGroupName(grp.name);
+      }
 
       const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).single();
       if (roadmap?.steps) {
@@ -62,7 +77,7 @@ export default function Flashcards() {
       setLoading(false);
     }
     fetchCards();
-  }, [topicId, user, stepFilter]);
+  }, [topicId, user, stepFilter, groupFilter]);
 
   const handleGenerateMore = async () => {
     setGenerating(true);
@@ -76,7 +91,11 @@ export default function Flashcards() {
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
       let query = supabase.from('flashcards').select('*').eq('topic_id', topicId!).order('created_at');
-      if (stepFilter !== null) query = query.eq('step_index', parseInt(stepFilter));
+      if (groupFilter) {
+        query = query.eq('group_id', groupFilter);
+      } else if (stepFilter !== null) {
+        query = query.eq('step_index', parseInt(stepFilter));
+      }
       const { data: newCards } = await query;
       if (newCards) setCards(newCards);
       toast.success('More flashcards generated!');
@@ -87,7 +106,40 @@ export default function Flashcards() {
     }
   };
 
+  const handleRenameGroup = async () => {
+    if (!renameValue.trim() || !user) return;
+    try {
+      if (groupFilter) {
+        await supabase.from('flashcard_groups').update({ name: renameValue.trim() }).eq('id', groupFilter);
+        setGroupName(renameValue.trim());
+      } else {
+        // Create group and assign cards
+        const { data: newGroup, error } = await supabase.from('flashcard_groups').insert({
+          user_id: user.id,
+          name: renameValue.trim(),
+          topic_id: topicId!,
+        }).select().single();
+        if (error) throw error;
+        let updateQuery = supabase.from('flashcards').update({ group_id: newGroup.id }).eq('topic_id', topicId!).eq('user_id', user.id);
+        if (stepFilter !== null) {
+          updateQuery = updateQuery.eq('step_index', parseInt(stepFilter));
+        } else {
+          updateQuery = updateQuery.is('step_index', null);
+        }
+        await updateQuery;
+        setGroupName(renameValue.trim());
+        // Update URL to use group filter
+        navigate(`/flashcards/${topicId}?group=${newGroup.id}`, { replace: true });
+      }
+      toast.success('Renamed!');
+      setIsRenaming(false);
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to rename');
+    }
+  };
+
   const currentCard = cards[currentIndex];
+  const displayTitle = groupName || stepTitle || 'All Flashcards';
 
   const goNext = () => { setFlipped(false); setTimeout(() => setCurrentIndex((i) => Math.min(i + 1, cards.length - 1)), 150); };
   const goPrev = () => { setFlipped(false); setTimeout(() => setCurrentIndex((i) => Math.max(i - 1, 0)), 150); };
@@ -113,7 +165,7 @@ export default function Flashcards() {
     );
   }
 
-  const isAllCards = stepFilter === null;
+  const isAllCards = stepFilter === null && !groupFilter;
 
   return (
     <div className="min-h-screen bg-background aurora-bg">
@@ -126,7 +178,7 @@ export default function Flashcards() {
             <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
           <div className="flex items-center gap-2">
-            {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block px-2 py-1 rounded-md glass-card border border-border/50">{stepTitle}</span>}
+            {!isRenaming && displayTitle && <span className="text-xs text-muted-foreground hidden sm:block px-2 py-1 rounded-md glass-card border border-border/50">{displayTitle}</span>}
             <Button variant="ghost" size="sm" onClick={() => navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" /> {hasRoadmap ? 'Back' : 'Dashboard'}
             </Button>
@@ -139,9 +191,37 @@ export default function Flashcards() {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 font-heading">
             <span className="gradient-text">{topicTitle}</span>
           </h1>
-          <p className="text-muted-foreground">
-            {isAllCards ? 'All Flashcards' : stepTitle}{' · '}Card {currentIndex + 1} of {cards.length}
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            {isRenaming ? (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={renameValue}
+                  onChange={(e) => setRenameValue(e.target.value)}
+                  className="px-3 py-1.5 rounded-lg border border-primary/30 bg-background/50 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 w-64"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleRenameGroup(); if (e.key === 'Escape') setIsRenaming(false); }}
+                  autoFocus
+                />
+                <button onClick={handleRenameGroup} className="p-1.5 rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-colors">
+                  <Check className="h-4 w-4" />
+                </button>
+                <button onClick={() => setIsRenaming(false)} className="p-1.5 rounded-md bg-muted hover:bg-muted/80 text-muted-foreground transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <p className="text-muted-foreground flex items-center gap-1.5">
+                {displayTitle}{' · '}Card {currentIndex + 1} of {cards.length}
+                <button
+                  onClick={() => { setRenameValue(groupName || stepTitle || `${topicTitle} — All`); setIsRenaming(true); }}
+                  className="p-1 rounded-md hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                  title="Rename this set"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </p>
+            )}
+          </div>
         </motion.div>
 
         {/* Card */}

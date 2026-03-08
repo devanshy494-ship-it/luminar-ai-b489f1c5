@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Zap, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
+import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Zap, Map, Trash2, RotateCcw, History, Clock, Pencil, CheckSquare, Merge, X, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -25,12 +27,14 @@ interface RoadmapWithTopic {
 }
 
 interface FlashcardGroup {
+  id: string | null; // group_id from flashcard_groups table
   topic_id: string;
   topic_title: string;
   step_index: number | null;
   step_title: string;
   count: number;
   created_at: string;
+  custom_name: string | null;
 }
 
 interface QuizResult {
@@ -60,12 +64,24 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("roadmaps");
   const [highlightTab, setHighlightTab] = useState(false);
 
+  // Rename state
+  const [renamingGroup, setRenamingGroup] = useState<FlashcardGroup | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+
+  // Merge state
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedGroups, setSelectedGroups] = useState<Set<string>>(new Set());
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeName, setMergeName] = useState('');
+  const [merging, setMerging] = useState(false);
+
   const switchTabFromAction = (tab: string) => {
     setActiveTab(tab);
     setHighlightTab(true);
     setTimeout(() => setHighlightTab(false), 1200);
     setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
   };
+
   const fetchAll = async () => {
     if (!user) return;
 
@@ -75,28 +91,44 @@ export default function Dashboard() {
     supabase.from('roadmaps').select('id, progress, created_at, topic_id, topics(title)').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { setRoadmaps((data as any) || []); setLoadingRoadmaps(false); });
 
-    supabase.from('flashcards').select('id, topic_id, step_index, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
+    // Fetch flashcards with group info
+    supabase.from('flashcards').select('id, topic_id, step_index, created_at, group_id').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(async ({ data: flashcards }) => {
         if (!flashcards || flashcards.length === 0) { setFlashcardGroups([]); setLoadingFlashcards(false); return; }
         const topicIds = [...new Set(flashcards.map(f => f.topic_id))];
-        const { data: topicData } = await supabase.from('topics').select('id, title').in('id', topicIds);
+        const [{ data: topicData }, { data: roadmapData }, { data: groupData }] = await Promise.all([
+          supabase.from('topics').select('id, title').in('id', topicIds),
+          supabase.from('roadmaps').select('topic_id, steps').in('topic_id', topicIds),
+          supabase.from('flashcard_groups').select('*').eq('user_id', user.id),
+        ]);
         const topicMap: Record<string, string> = {};
         topicData?.forEach(t => { topicMap[t.id] = t.title; });
-
-        const { data: roadmapData } = await supabase.from('roadmaps').select('topic_id, steps').in('topic_id', topicIds);
         const stepsMap: Record<string, any[]> = {};
         roadmapData?.forEach(r => { stepsMap[r.topic_id] = r.steps as any[]; });
+        const groupMap: Record<string, { id: string; name: string }> = {};
+        groupData?.forEach(g => { groupMap[g.id] = { id: g.id, name: g.name }; });
 
         const groups: Record<string, FlashcardGroup> = {};
         flashcards.forEach(fc => {
-          const key = `${fc.topic_id}-${fc.step_index ?? 'all'}`;
+          // Group by group_id if available, otherwise by topic+step
+          const key = fc.group_id || `${fc.topic_id}-${fc.step_index ?? 'all'}`;
           if (!groups[key]) {
             const steps = stepsMap[fc.topic_id];
             let stepTitle = 'All Steps';
             if (fc.step_index !== null && fc.step_index !== undefined && steps?.[fc.step_index]) {
               stepTitle = steps[fc.step_index].title;
             }
-            groups[key] = { topic_id: fc.topic_id, topic_title: topicMap[fc.topic_id] || 'Unknown', step_index: fc.step_index, step_title: stepTitle, count: 0, created_at: fc.created_at };
+            const grp = fc.group_id ? groupMap[fc.group_id] : null;
+            groups[key] = {
+              id: fc.group_id || null,
+              topic_id: fc.topic_id,
+              topic_title: topicMap[fc.topic_id] || 'Unknown',
+              step_index: fc.step_index,
+              step_title: stepTitle,
+              count: 0,
+              created_at: fc.created_at,
+              custom_name: grp?.name || null,
+            };
           }
           groups[key].count++;
         });
@@ -157,6 +189,97 @@ export default function Dashboard() {
     });
   };
 
+  // Rename flashcard group
+  const handleRename = async () => {
+    if (!renamingGroup || !renameValue.trim() || !user) return;
+    try {
+      if (renamingGroup.id) {
+        // Update existing group name
+        await supabase.from('flashcard_groups').update({ name: renameValue.trim() }).eq('id', renamingGroup.id);
+      } else {
+        // Create a new group, then assign flashcards to it
+        const { data: newGroup, error } = await supabase.from('flashcard_groups').insert({
+          user_id: user.id,
+          name: renameValue.trim(),
+          topic_id: renamingGroup.topic_id,
+        }).select().single();
+        if (error) throw error;
+        // Assign flashcards matching this topic+step to the new group
+        let updateQuery = supabase.from('flashcards').update({ group_id: newGroup.id }).eq('topic_id', renamingGroup.topic_id).eq('user_id', user.id);
+        if (renamingGroup.step_index !== null) {
+          updateQuery = updateQuery.eq('step_index', renamingGroup.step_index);
+        } else {
+          updateQuery = updateQuery.is('step_index', null);
+        }
+        await updateQuery;
+      }
+      toast.success('Renamed successfully');
+      setRenamingGroup(null);
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to rename');
+    }
+  };
+
+  // Merge flashcard groups
+  const handleMerge = async () => {
+    if (selectedGroups.size < 2 || !mergeName.trim() || !user) return;
+    setMerging(true);
+    try {
+      const groupsToMerge = flashcardGroups.filter(g => {
+        const key = g.id || `${g.topic_id}-${g.step_index ?? 'all'}`;
+        return selectedGroups.has(key);
+      });
+      // Use first group's topic_id
+      const targetTopicId = groupsToMerge[0].topic_id;
+
+      // Create a new group
+      const { data: newGroup, error } = await supabase.from('flashcard_groups').insert({
+        user_id: user.id,
+        name: mergeName.trim(),
+        topic_id: targetTopicId,
+      }).select().single();
+      if (error) throw error;
+
+      // Move all flashcards from selected groups into the new group
+      for (const g of groupsToMerge) {
+        if (g.id) {
+          await supabase.from('flashcards').update({ group_id: newGroup.id }).eq('group_id', g.id).eq('user_id', user.id);
+          // Delete old empty group
+          await supabase.from('flashcard_groups').delete().eq('id', g.id);
+        } else {
+          let q = supabase.from('flashcards').update({ group_id: newGroup.id }).eq('topic_id', g.topic_id).eq('user_id', user.id).is('group_id', null);
+          if (g.step_index !== null) {
+            q = q.eq('step_index', g.step_index);
+          } else {
+            q = q.is('step_index', null);
+          }
+          await q;
+        }
+      }
+
+      toast.success('Flashcard sets merged!');
+      setMergeDialogOpen(false);
+      setSelectMode(false);
+      setSelectedGroups(new Set());
+      setMergeName('');
+      fetchAll();
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to merge');
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  const toggleGroupSelection = (group: FlashcardGroup) => {
+    const key = group.id || `${group.topic_id}-${group.step_index ?? 'all'}`;
+    setSelectedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
 
   const quizByTopic: Record<string, { title: string; quizzes: QuizResult[] }> = {};
@@ -166,6 +289,11 @@ export default function Dashboard() {
     }
     quizByTopic[q.topic_id].quizzes.push(q);
   });
+
+  const getGroupDisplayName = (group: FlashcardGroup) => {
+    if (group.custom_name) return group.custom_name;
+    return `${group.topic_title} — ${group.step_title}`;
+  };
 
   return (
     <div className="min-h-screen bg-background aurora-bg">
@@ -369,30 +497,74 @@ export default function Dashboard() {
               <div className="space-y-8">
                 {/* Flashcard History */}
                 <div>
-                  <h3 className="font-heading font-bold text-foreground mb-4 text-lg flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-secondary" /> Flashcard Sets
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-heading font-bold text-foreground text-lg flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-secondary" /> Flashcard Sets
+                    </h3>
+                    {flashcardGroups.length > 1 && (
+                      <div className="flex items-center gap-2">
+                        {selectMode && selectedGroups.size >= 2 && (
+                          <Button size="sm" variant="glow" onClick={() => { setMergeName(''); setMergeDialogOpen(true); }}>
+                            <Merge className="h-3.5 w-3.5 mr-1.5" /> Merge ({selectedGroups.size})
+                          </Button>
+                        )}
+                        <Button size="sm" variant={selectMode ? "default" : "outline"} onClick={() => { setSelectMode(!selectMode); setSelectedGroups(new Set()); }}>
+                          {selectMode ? <><X className="h-3.5 w-3.5 mr-1" /> Cancel</> : <><CheckSquare className="h-3.5 w-3.5 mr-1" /> Select</>}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   {loadingFlashcards ? (
                     <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
                   ) : flashcardGroups.length > 0 ? (
                     <div className="grid gap-3">
-                      {flashcardGroups.map((group, i) => (
-                        <div key={i} className="flex items-center gap-2">
-                          <button
-                            onClick={() => navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`)}
-                            className="flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border border-border/50 hover:border-primary/30 card-hover transition-all text-left"
-                          >
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-foreground truncate">{group.topic_title}</h3>
-                              <p className="text-sm text-muted-foreground">{group.step_title} · {group.count} cards</p>
-                            </div>
-                            <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
-                          </button>
-                          <button onClick={() => handleDeleteFlashcards(group.topic_id, group.step_index)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ))}
+                      {flashcardGroups.map((group, i) => {
+                        const groupKey = group.id || `${group.topic_id}-${group.step_index ?? 'all'}`;
+                        const isSelected = selectedGroups.has(groupKey);
+                        return (
+                          <div key={i} className="flex items-center gap-2">
+                            {selectMode && (
+                              <button
+                                onClick={() => toggleGroupSelection(group)}
+                                className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/40 hover:border-primary/60'}`}
+                              >
+                                {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                if (selectMode) { toggleGroupSelection(group); return; }
+                                if (group.id) {
+                                  navigate(`/flashcards/${group.topic_id}?group=${group.id}`);
+                                } else {
+                                  navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`);
+                                }
+                              }}
+                              className={`flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border transition-all text-left ${isSelected ? 'border-primary/50 shadow-[0_0_12px_-4px_hsl(var(--neon-cyan)/0.3)]' : 'border-border/50 hover:border-primary/30 card-hover'}`}
+                            >
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-foreground truncate">{getGroupDisplayName(group)}</h3>
+                                <p className="text-sm text-muted-foreground">{group.count} cards</p>
+                              </div>
+                              <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+                            </button>
+                            {!selectMode && (
+                              <button
+                                onClick={() => { setRenamingGroup(group); setRenameValue(group.custom_name || `${group.topic_title} — ${group.step_title}`); }}
+                                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors shrink-0"
+                                title="Rename"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </button>
+                            )}
+                            {!selectMode && (
+                              <button onClick={() => handleDeleteFlashcards(group.topic_id, group.step_index)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No flashcard sets yet</p>
@@ -455,6 +627,49 @@ export default function Dashboard() {
           </Tabs>
         </motion.div>
       </main>
+
+      {/* Rename Dialog */}
+      <Dialog open={!!renamingGroup} onOpenChange={(open) => { if (!open) setRenamingGroup(null); }}>
+        <DialogContent className="glass-card border-border/50">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Rename Flashcard Set</DialogTitle>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder="Enter new name..."
+            className="bg-background/50"
+            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRenamingGroup(null)}>Cancel</Button>
+            <Button variant="glow" onClick={handleRename} disabled={!renameValue.trim()}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Dialog */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent className="glass-card border-border/50">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Merge Flashcard Sets</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Merging {selectedGroups.size} sets into one. Choose a name:</p>
+          <Input
+            value={mergeName}
+            onChange={(e) => setMergeName(e.target.value)}
+            placeholder="Enter merged set name..."
+            className="bg-background/50"
+            onKeyDown={(e) => e.key === 'Enter' && handleMerge()}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>Cancel</Button>
+            <Button variant="glow" onClick={handleMerge} disabled={!mergeName.trim() || merging}>
+              {merging ? 'Merging...' : 'Merge'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
