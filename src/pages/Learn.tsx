@@ -199,6 +199,7 @@ export default function Learn() {
       const body: any = { topic: trimmed };
       if (extractedContent && extractedContent.length > 50) {
         body.sourceContent = extractedContent.slice(0, 15000);
+        body.strictMode = strictMode;
       }
 
       const { data, error } = await supabase.functions.invoke('generate-roadmap', {
