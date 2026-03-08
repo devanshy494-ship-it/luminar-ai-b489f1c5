@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.youtube-transcript]
 verify_jwt = false
+
+[functions.youtube-flashcards]
+verify_jwt = false
