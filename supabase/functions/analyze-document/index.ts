@@ -22,10 +22,10 @@ serve(async (req) => {
         const html = await response.text();
         // Strip HTML tags to get plain text
         textContent = html
-          .replace(/<script[^>]*>[\\s\\S]*?<\\/script>/gi, "")
-          .replace(/<style[^>]*>[\\s\\S]*?<\\/style>/gi, "")
-          .replace(/<[^>]+>/g, " ")
-          .replace(/\\s+/g, " ")
+          .replace(new RegExp("<script[^>]*>[\\s\\S]*?<\\/script>", "gi"), "")
+          .replace(new RegExp("<style[^>]*>[\\s\\S]*?<\\/style>", "gi"), "")
+          .replace(new RegExp("<[^>]+>", "g"), " ")
+          .replace(new RegExp("\\s+", "g"), " ")
           .trim();
       } catch (e) {
         return new Response(
