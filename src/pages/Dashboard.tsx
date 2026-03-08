@@ -57,6 +57,7 @@ export default function Dashboard() {
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [activeTab, setActiveTab] = useState("roadmaps");
 
   const fetchAll = async () => {
     if (!user) return;
@@ -190,18 +191,16 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
           </button>
           <button onClick={() => {
-            const tabEl = document.querySelector('[data-state][value="flashcards"]');
-            if (tabEl) (tabEl as HTMLElement).click();
-            else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            setActiveTab("flashcards");
+            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
           }} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
             <Sparkles className="h-8 w-8 text-accent mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
           <button onClick={() => {
-            const tabEl = document.querySelector('[data-state][value="quizzes"]');
-            if (tabEl) (tabEl as HTMLElement).click();
-            else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            setActiveTab("quizzes");
+            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
           }} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
             <Target className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
@@ -230,7 +229,7 @@ export default function Dashboard() {
 
         {/* Tabs */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
-          <Tabs defaultValue="roadmaps" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" id="dashboard-tabs">
             <div className="flex items-center justify-between mb-6">
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
