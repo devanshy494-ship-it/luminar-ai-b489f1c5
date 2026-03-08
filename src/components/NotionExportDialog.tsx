@@ -49,9 +49,25 @@ interface NotionExportDialogProps {
   stepIndex?: number | null; // null = full export, number = single step
 }
 
-function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: number): string {
+function generateRoadmapMarkdown(
+  topicTitle: string,
+  steps: Step[],
+  progress: number,
+  lessons?: Record<number, LessonData>,
+  extraMaterials?: Record<number, ExtraMaterials>,
+  includeLessons?: boolean,
+  includeMaterials?: boolean
+): string {
   let md = `# 🗺️ Roadmap: ${topicTitle}\n\n`;
   md += `**Progress:** ${progress}%\n\n---\n\n`;
+
+  const categoryConfig = [
+    { key: 'videos' as const, emoji: '🎥', label: 'Videos' },
+    { key: 'websites' as const, emoji: '🌐', label: 'Websites' },
+    { key: 'books' as const, emoji: '📖', label: 'Books' },
+    { key: 'apps' as const, emoji: '📱', label: 'Apps' },
+    { key: 'other' as const, emoji: '📌', label: 'Other' },
+  ];
 
   steps.forEach((step, i) => {
     const status = step.completed ? '✅' : '⬜';
@@ -60,6 +76,42 @@ function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: nu
     if (step.estimatedTime) {
       md += `⏱️ *Estimated time: ${step.estimatedTime}*\n\n`;
     }
+
+    // Include lesson content inline
+    if (includeLessons && lessons?.[i]) {
+      const lesson = lessons[i];
+      md += `### 📖 Lesson\n\n`;
+      lesson.sections.forEach((section) => {
+        md += `#### ${section.heading}\n\n${section.content}\n\n`;
+      });
+      if (lesson.keyTakeaways.length > 0) {
+        md += `#### 🔑 Key Takeaways\n\n`;
+        lesson.keyTakeaways.forEach((t) => {
+          md += `- ${t}\n`;
+        });
+        md += `\n`;
+      }
+    }
+
+    // Include materials inline
+    if (includeMaterials && extraMaterials?.[i]) {
+      const materials = extraMaterials[i];
+      const hasContent = categoryConfig.some((c) => materials[c.key]?.length > 0);
+      if (hasContent) {
+        md += `### 📚 Extra Materials\n\n`;
+        categoryConfig.forEach(({ key, emoji, label }) => {
+          const items = materials[key];
+          if (!items || items.length === 0) return;
+          md += `#### ${emoji} ${label}\n\n`;
+          items.forEach((item) => {
+            md += `- **[${item.name}](${item.url})**\n`;
+            if (item.description) md += `  ${item.description}\n`;
+          });
+          md += `\n`;
+        });
+      }
+    }
+
     md += `---\n\n`;
   });
 
