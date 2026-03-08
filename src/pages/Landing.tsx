@@ -51,7 +51,8 @@ export default function Landing() {
             </div>
             <span className="font-heading text-xl font-bold text-foreground tracking-tight">Luminar</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             {user ? (
               <Button onClick={() => navigate('/dashboard')} className="gradient-primary border-0 shadow-glow hover:opacity-90 transition-opacity">
                 Dashboard <ArrowRight className="ml-2 h-4 w-4" />
