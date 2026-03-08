@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
+import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Crosshair, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
