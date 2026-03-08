@@ -76,6 +76,16 @@ export default function Roadmap() {
   const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportStepIndex, setExportStepIndex] = useState<number | null>(null);
+  const [minWords, setMinWords] = useState<number | ''>('');
+  const [maxWords, setMaxWords] = useState<number | ''>('');
+  const [showWordSettings, setShowWordSettings] = useState(false);
+
+  // Calculate total word count across all generated lessons
+  const totalWordCount = Object.values(lessons).reduce((total, lesson) => {
+    const sectionWords = lesson.sections.reduce((sum, s) => sum + s.content.split(/\s+/).filter(Boolean).length + s.heading.split(/\s+/).filter(Boolean).length, 0);
+    const takeawayWords = lesson.keyTakeaways.reduce((sum, t) => sum + t.split(/\s+/).filter(Boolean).length, 0);
+    return total + sectionWords + takeawayWords;
+  }, 0);
 
   useEffect(() => {
     async function fetchData() {
