@@ -74,6 +74,7 @@ export default function Roadmap() {
   const [extraMaterials, setExtraMaterials] = useState<Record<number, ExtraMaterials>>({});
   const [loadingExtraMaterials, setLoadingExtraMaterials] = useState<number | null>(null);
   const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
