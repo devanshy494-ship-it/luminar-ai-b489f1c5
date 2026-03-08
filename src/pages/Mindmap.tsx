@@ -465,7 +465,9 @@ export default function Mindmap() {
                 </p>
                 {(selectedNode.data as any)?._plainLabel && (
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    {expandedNodes.has(selectedNode.id) ? 'Click below to dive deeper )}
+                    Click below to dive deeper
+                  </p>
+                )}
                 <Button
                   size="sm"
                   className="w-full text-xs"
