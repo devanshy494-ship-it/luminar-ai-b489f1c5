@@ -474,8 +474,6 @@ export default function Mindmap() {
                 >
                   {expandingNode === selectedNode.id ? (
                     <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
-                  ) : expandedNodes.has(selectedNode.id) ? (
-                    'Already expanded'
                   ) : (
                     <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
                   )}
