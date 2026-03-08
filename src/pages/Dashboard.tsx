@@ -367,11 +367,16 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stats */}
-        <motion.div className="grid grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+        <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
           <div className="p-5 rounded-2xl glass-card border-t-2 border-t-primary border border-border/50 text-center">
             <Brain className="h-6 w-6 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{roadmaps.length}</p>
             <p className="text-sm text-muted-foreground">Roadmaps</p>
+          </div>
+          <div className="p-5 rounded-2xl glass-card border-t-2 border-t-success border border-border/50 text-center">
+            <GitBranch className="h-6 w-6 text-success mx-auto mb-2" />
+            <p className="text-2xl font-bold text-foreground">{mindmaps.length}</p>
+            <p className="text-sm text-muted-foreground">Mindmaps</p>
           </div>
           <div className="p-5 rounded-2xl glass-card border-t-2 border-t-secondary border border-border/50 text-center">
             <Sparkles className="h-6 w-6 text-secondary mx-auto mb-2" />
