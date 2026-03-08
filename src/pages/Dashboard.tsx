@@ -189,6 +189,13 @@ export default function Dashboard() {
     toast.success('Quiz result deleted');
   };
 
+  const handleDeleteMindmap = async (mindmapId: string) => {
+    if (!confirm('Delete this mindmap?')) return;
+    await supabase.from('mindmaps').delete().eq('id', mindmapId);
+    setMindmaps(prev => prev.filter(m => m.id !== mindmapId));
+    toast.success('Mindmap deleted');
+  };
+
   const handleRetryWrong = (quiz: QuizResult) => {
     if (!quiz.wrong_questions || quiz.wrong_questions.length === 0) return;
     navigate(`/quiz/${quiz.topic_id}`, {
