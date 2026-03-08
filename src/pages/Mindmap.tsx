@@ -382,7 +382,9 @@ export default function Mindmap() {
     );
   }
 
-  const canExpand = selectedNode && selectedNode.id !== 'center' && eturn (
+  const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
+
+  return (
     <div className="h-screen flex flex-col bg-background">
       {/* Nav */}
       <nav className="border-b border-border/50 glass-nav sticky top-0 z-50 shrink-0">
