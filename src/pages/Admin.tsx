@@ -53,9 +53,7 @@ export default function Admin() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await supabase.functions.invoke('admin-users', {
-        method: 'GET',
-      });
+      const response = await supabase.functions.invoke('admin-users');
 
       if (response.error) throw response.error;
       setUsers(response.data.users || []);
@@ -71,8 +69,7 @@ export default function Admin() {
     setDeleting(true);
     try {
       const response = await supabase.functions.invoke('admin-users', {
-        method: 'DELETE',
-        body: { user_id: deleteTarget.user_id },
+        body: { action: 'delete', user_id: deleteTarget.user_id },
       });
 
       if (response.error) throw response.error;

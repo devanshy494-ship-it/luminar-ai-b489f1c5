@@ -27,16 +27,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await anonClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await anonClient.auth.getUser();
+    if (userError || !userData?.user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const callerUserId = claimsData.claims.sub;
+    const callerUserId = userData.user.id;
 
     // Use service role to check admin + perform operations
     const serviceClient = createClient(
@@ -59,7 +58,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (req.method === "GET") {
+    // Parse body to determine action
+    let body: any = {};
+    try {
+      body = await req.json();
+    } catch {
+      // No body = list users
+    }
+
+    // List users (no action specified)
+    if (!body.action) {
       const { data: profiles, error } = await serviceClient
         .from("profiles")
         .select("user_id, email, full_name, created_at")
@@ -72,8 +80,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (req.method === "DELETE") {
-      const { user_id } = await req.json();
+    // Delete user
+    if (body.action === "delete") {
+      const { user_id } = body;
       if (!user_id) {
         return new Response(JSON.stringify({ error: "user_id required" }), {
           status: 400,
@@ -81,7 +90,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Prevent admin from deleting themselves
       if (user_id === callerUserId) {
         return new Response(JSON.stringify({ error: "Cannot delete yourself" }), {
           status: 400,
@@ -99,7 +107,6 @@ Deno.serve(async (req) => {
       await serviceClient.from("user_roles").delete().eq("user_id", user_id);
       await serviceClient.from("profiles").delete().eq("user_id", user_id);
 
-      // Delete auth user
       const { error: deleteError } = await serviceClient.auth.admin.deleteUser(user_id);
       if (deleteError) {
         console.error("Error deleting auth user:", deleteError);
@@ -110,8 +117,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Method not allowed" }), {
-      status: 405,
+    return new Response(JSON.stringify({ error: "Unknown action" }), {
+      status: 400,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
