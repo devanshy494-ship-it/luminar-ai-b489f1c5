@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, Flame, Clock, ArrowRight, LogOut, Brain, Sparkles, Target } from 'lucide-react';
+import { BookOpen, Plus, Flame, Clock, ArrowRight, LogOut, Brain, Sparkles, Target, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 
@@ -12,25 +13,48 @@ interface Topic {
   created_at: string;
 }
 
+interface RoadmapWithTopic {
+  id: string;
+  progress: number;
+  created_at: string;
+  topics: { title: string } | null;
+  topic_id: string;
+}
+
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [topics, setTopics] = useState<Topic[]>([]);
+  const [roadmaps, setRoadmaps] = useState<RoadmapWithTopic[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRoadmaps, setLoadingRoadmaps] = useState(true);
 
   useEffect(() => {
+    if (!user) return;
+
     async function fetchTopics() {
-      if (!user) return;
       const { data } = await supabase
         .from('topics')
         .select('id, title, created_at')
-        .eq('user_id', user.id)
+        .eq('user_id', user!.id)
         .order('created_at', { ascending: false })
         .limit(6);
       setTopics(data || []);
       setLoading(false);
     }
+
+    async function fetchRoadmaps() {
+      const { data } = await supabase
+        .from('roadmaps')
+        .select('id, progress, created_at, topic_id, topics(title)')
+        .eq('user_id', user!.id)
+        .order('created_at', { ascending: false });
+      setRoadmaps((data as any) || []);
+      setLoadingRoadmaps(false);
+    }
+
     fetchTopics();
+    fetchRoadmaps();
   }, [user]);
 
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
@@ -123,53 +147,114 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
-        {/* Recent Topics */}
+        {/* Tabs: Recent Topics + Roadmap History */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Recent Topics</h2>
-            <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
-              <Plus className="h-4 w-4 mr-2" /> New Topic
-            </Button>
-          </div>
-
-          {loading ? (
-            <div className="grid gap-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : topics.length > 0 ? (
-            <div className="grid gap-3">
-              {topics.map((topic) => (
-                <button
-                  key={topic.id}
-                  onClick={() => navigate(`/roadmap/${topic.id}`)}
-                  className="flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
-                >
-                  <div>
-                    <h3 className="font-semibold text-foreground">{topic.title}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(topic.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 rounded-xl bg-card border border-border">
-              <BookOpen className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-foreground mb-2">No topics yet</h3>
-              <p className="text-muted-foreground mb-6">Start learning by exploring a new topic</p>
-              <Button onClick={() => navigate('/learn')}>
-                <Plus className="h-4 w-4 mr-2" /> Explore a Topic
+          <Tabs defaultValue="topics" className="w-full">
+            <div className="flex items-center justify-between mb-6">
+              <TabsList>
+                <TabsTrigger value="topics">Recent Topics</TabsTrigger>
+                <TabsTrigger value="roadmaps">
+                  <Map className="h-4 w-4 mr-2" /> Roadmap History
+                </TabsTrigger>
+              </TabsList>
+              <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
+                <Plus className="h-4 w-4 mr-2" /> New Topic
               </Button>
             </div>
-          )}
+
+            <TabsContent value="topics">
+              {loading ? (
+                <div className="grid gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+                  ))}
+                </div>
+              ) : topics.length > 0 ? (
+                <div className="grid gap-3">
+                  {topics.map((topic) => (
+                    <button
+                      key={topic.id}
+                      onClick={() => navigate(`/roadmap/${topic.id}`)}
+                      className="flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
+                    >
+                      <div>
+                        <h3 className="font-semibold text-foreground">{topic.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(topic.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 rounded-xl bg-card border border-border">
+                  <BookOpen className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No topics yet</h3>
+                  <p className="text-muted-foreground mb-6">Start learning by exploring a new topic</p>
+                  <Button onClick={() => navigate('/learn')}>
+                    <Plus className="h-4 w-4 mr-2" /> Explore a Topic
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="roadmaps">
+              {loadingRoadmaps ? (
+                <div className="grid gap-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
+                  ))}
+                </div>
+              ) : roadmaps.length > 0 ? (
+                <div className="grid gap-3">
+                  {roadmaps.map((roadmap) => (
+                    <button
+                      key={roadmap.id}
+                      onClick={() => navigate(`/roadmap/${roadmap.topic_id}`)}
+                      className="flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-foreground truncate">
+                          {roadmap.topics?.title || 'Untitled'}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(roadmap.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary transition-all"
+                              style={{ width: `${roadmap.progress}%` }}
+                            />
+                          </div>
+                          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+                            {roadmap.progress}%
+                          </span>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 rounded-xl bg-card border border-border">
+                  <Map className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-foreground mb-2">No roadmaps yet</h3>
+                  <p className="text-muted-foreground mb-6">Generate your first learning roadmap</p>
+                  <Button onClick={() => navigate('/learn')}>
+                    <Plus className="h-4 w-4 mr-2" /> Create Roadmap
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </main>
     </div>
