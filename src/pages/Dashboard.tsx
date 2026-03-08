@@ -56,12 +56,13 @@ export default function Dashboard() {
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
 
   const fetchAll = async () => {
     if (!user) return;
 
     supabase.from('topics').select('id, title, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(6)
-      .then(({ data }) => { setTopics(data || []); setLoading(false); });
+      .then(({ data }) => { setTopics(data || []); setIsFirstVisit(!data || data.length === 0); setLoading(false); });
 
     supabase.from('roadmaps').select('id, progress, created_at, topic_id, topics(title)').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { setRoadmaps((data as any) || []); setLoadingRoadmaps(false); });
@@ -177,8 +178,8 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-10 max-w-5xl">
         <motion.div className="mb-10" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Welcome back, {userName}</h1>
-          <p className="text-muted-foreground text-lg">Continue your learning journey.</p>
+           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{isFirstVisit ? 'Welcome,' : 'Welcome back,'} {userName}</h1>
+           <p className="text-muted-foreground text-lg">{isFirstVisit ? "Let's start your learning journey." : 'Continue your learning journey.'}</p>
         </motion.div>
 
         {/* Quick Actions */}
