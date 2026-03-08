@@ -13,6 +13,9 @@ import Roadmap from "./pages/Roadmap";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
 import Mindmap from "./pages/Mindmap";
+import MyMindmaps from "./pages/MyMindmaps";
+import MyFlashcards from "./pages/MyFlashcards";
+import MyQuizzes from "./pages/MyQuizzes";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
