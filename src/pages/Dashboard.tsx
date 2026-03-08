@@ -57,10 +57,12 @@ export default function Dashboard() {
   const [roadmaps, setRoadmaps] = useState<RoadmapWithTopic[]>([]);
   const [flashcardGroups, setFlashcardGroups] = useState<FlashcardGroup[]>([]);
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [mindmaps, setMindmaps] = useState<MindmapItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [loadingMindmaps, setLoadingMindmaps] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [activeTab, setActiveTab] = useState("roadmaps");
   const [highlightTab, setHighlightTab] = useState(false);
