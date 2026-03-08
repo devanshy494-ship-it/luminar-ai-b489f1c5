@@ -79,6 +79,7 @@ export default function Roadmap() {
   const [minWords, setMinWords] = useState<number | ''>('');
   const [maxWords, setMaxWords] = useState<number | ''>('');
   const [showWordSettings, setShowWordSettings] = useState(false);
+  const [generatingMindmap, setGeneratingMindmap] = useState(false);
 
   // Calculate total word count across all generated lessons
   const totalWordCount = Object.values(lessons).reduce((total, lesson) => {
