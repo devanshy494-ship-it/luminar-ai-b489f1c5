@@ -58,7 +58,14 @@ export default function Dashboard() {
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [activeTab, setActiveTab] = useState("roadmaps");
+  const [highlightTab, setHighlightTab] = useState(false);
 
+  const switchTabFromAction = (tab: string) => {
+    setActiveTab(tab);
+    setHighlightTab(true);
+    setTimeout(() => setHighlightTab(false), 1200);
+    setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  };
   const fetchAll = async () => {
     if (!user) return;
 
@@ -190,18 +197,12 @@ export default function Dashboard() {
             <h3 className="font-serif font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
           </button>
-          <button onClick={() => {
-            setActiveTab("flashcards");
-            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
+          <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
             <Sparkles className="h-8 w-8 text-accent mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
-          <button onClick={() => {
-            setActiveTab("quizzes");
-            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
+          <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
             <Target className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
@@ -279,14 +280,28 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            {/* Flashcards Tab - Now a creator */}
+            {/* Flashcards Tab */}
             <TabsContent value="flashcards">
-              <FlashcardCreator />
+              <motion.div
+                key={`flashcards-${highlightTab && activeTab === 'flashcards' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'flashcards' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'flashcards' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
+                <FlashcardCreator />
+              </motion.div>
             </TabsContent>
 
             {/* Quizzes Tab */}
             <TabsContent value="quizzes">
-              {loadingQuizzes ? (
+              <motion.div
+                key={`quizzes-${highlightTab && activeTab === 'quizzes' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'quizzes' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'quizzes' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
                 <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
               ) : Object.keys(quizByTopic).length > 0 ? (
                 <div className="space-y-6">
