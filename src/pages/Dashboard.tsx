@@ -197,8 +197,8 @@ export default function Dashboard() {
             const tabEl = document.querySelector('[data-state][value="quizzes"]');
             if (tabEl) (tabEl as HTMLElement).click();
             else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
-          }} className="group p-6 rounded-xl bg-success/5 border border-success/20 hover:border-success/40 hover:bg-success/10 transition-all text-left">
-            <Target className="h-8 w-8 text-success mb-3" />
+          }} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
+            <Target className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
           </button>
