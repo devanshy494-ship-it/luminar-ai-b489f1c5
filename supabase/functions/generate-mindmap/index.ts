@@ -9,7 +9,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { topic, sourceContent } = await req.json();
+    const { topic, sourceContent, strictMode } = await req.json();
 
     if (!topic || typeof topic !== "string" || topic.trim().length === 0) {
       return new Response(JSON.stringify({ error: "Topic is required" }), {
@@ -22,6 +22,7 @@ serve(async (req) => {
 
     const hasSource = sourceContent && typeof sourceContent === "string" && sourceContent.length > 50;
     const truncatedSource = hasSource ? sourceContent.slice(0, 15000) : "";
+    const isStrict = hasSource && strictMode === true;
 
     const systemPrompt = `You are an expert mind map generator. Given a topic${hasSource ? " and source material" : ""}, create a detailed, hierarchical mind map structure.
 
@@ -31,7 +32,7 @@ The mind map should have:
 - Each main branch should have 2-5 sub-branches (level 2)
 - Important sub-branches can have 1-3 leaf nodes (level 3)
 
-Make it comprehensive and well-organized. Each node should have a concise label and optionally a brief description.${hasSource ? "\n\nIMPORTANT: Base the mind map primarily on the provided source material. Extract the key concepts, structure, and relationships from the content." : ""}`;
+Make it comprehensive and well-organized. Each node should have a concise label and optionally a brief description.${hasSource && isStrict ? "\n\nCRITICAL: You MUST use ONLY information from the provided source material. Do NOT add any external knowledge. Every node must be directly derived from the source content." : hasSource ? "\n\nIMPORTANT: Base the mind map primarily on the provided source material. Extract the key concepts, structure, and relationships from the content. You may supplement with relevant context where the source has gaps." : ""}`;
 
     const userContent = hasSource
       ? `Create a detailed mind map for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`
