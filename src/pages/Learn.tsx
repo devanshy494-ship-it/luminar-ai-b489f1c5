@@ -77,6 +77,8 @@ export default function Learn() {
   const [extractedContent, setExtractedContent] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [loadingSource, setLoadingSource] = useState(false);
+  // New: pending generation type — when set, show mode selection
+  const [pendingGenType, setPendingGenType] = useState<'roadmap' | 'mindmap' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -171,6 +173,7 @@ export default function Learn() {
       const body: any = { topic: trimmed };
       if (extractedContent && extractedContent.length > 50) {
         body.sourceContent = extractedContent.slice(0, 15000);
+        body.strictMode = strictMode;
       }
 
       const { data, error } = await supabase.functions.invoke('generate-mindmap', { body });
@@ -265,7 +268,11 @@ export default function Learn() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleGenerate(topic);
+              if (hasSource) {
+                setPendingGenType('roadmap');
+              } else {
+                handleGenerate(topic);
+              }
             }}
             className="flex gap-3 mb-4"
           >
@@ -304,7 +311,13 @@ export default function Learn() {
               variant="outline"
               className="px-6 py-6"
               disabled={loading || loadingMindmap || !topic.trim()}
-              onClick={() => handleGenerateMindmap(topic)}
+              onClick={() => {
+                if (hasSource) {
+                  setPendingGenType('mindmap');
+                } else {
+                  handleGenerateMindmap(topic);
+                }
+              }}
               title="Generate Mindmap"
             >
               {loadingMindmap ? (
@@ -316,7 +329,7 @@ export default function Learn() {
           </form>
 
           {/* Source badge */}
-          {hasSource && !showSourcePanel && (
+          {hasSource && !showSourcePanel && !pendingGenType && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -335,39 +348,74 @@ export default function Learn() {
             </motion.div>
           )}
 
-          {/* Strict/Contextual toggle - only shown when source is attached */}
-          {hasSource && !showSourcePanel && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mb-4"
-            >
-              <div className="flex items-center gap-3 p-3 rounded-xl glass-card border border-border/50">
-                <button
-                  onClick={() => setStrictMode(false)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                    !strictMode
-                      ? 'bg-primary/10 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  🌐 Contextual
-                  <span className="block text-xs font-normal mt-0.5 opacity-70">AI supplements gaps</span>
-                </button>
-                <button
-                  onClick={() => setStrictMode(true)}
-                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                    strictMode
-                      ? 'bg-primary/10 text-primary border border-primary/30'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  📄 Strict
-                  <span className="block text-xs font-normal mt-0.5 opacity-70">Only from your material</span>
-                </button>
-              </div>
-            </motion.div>
-          )}
+          {/* Mode selection panel — shown when user clicks roadmap/mindmap with source */}
+          <AnimatePresence>
+            {pendingGenType && hasSource && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-4 overflow-hidden"
+              >
+                <div className="p-4 rounded-2xl glass-card border border-border/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      How should AI use your source material?
+                    </p>
+                    <button onClick={() => setPendingGenType(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <button
+                      onClick={() => setStrictMode(false)}
+                      className={`flex-1 py-3 px-3 rounded-xl text-sm font-medium transition-all ${
+                        !strictMode
+                          ? 'bg-primary/10 text-primary border-2 border-primary/30'
+                          : 'text-muted-foreground hover:text-foreground border-2 border-border hover:border-primary/20'
+                      }`}
+                    >
+                      🌐 Contextual
+                      <span className="block text-xs font-normal mt-0.5 opacity-70">AI supplements gaps</span>
+                    </button>
+                    <button
+                      onClick={() => setStrictMode(true)}
+                      className={`flex-1 py-3 px-3 rounded-xl text-sm font-medium transition-all ${
+                        strictMode
+                          ? 'bg-primary/10 text-primary border-2 border-primary/30'
+                          : 'text-muted-foreground hover:text-foreground border-2 border-border hover:border-primary/20'
+                      }`}
+                    >
+                      📄 Strict
+                      <span className="block text-xs font-normal mt-0.5 opacity-70">Only from your material</span>
+                    </button>
+                  </div>
+                  <Button
+                    className="w-full"
+                    variant="glow"
+                    disabled={loading || loadingMindmap}
+                    onClick={() => {
+                      if (pendingGenType === 'roadmap') {
+                        handleGenerate(topic);
+                      } else {
+                        handleGenerateMindmap(topic);
+                      }
+                      setPendingGenType(null);
+                    }}
+                  >
+                    {(loading || loadingMindmap) ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : pendingGenType === 'roadmap' ? (
+                      <Sparkles className="h-4 w-4 mr-2" />
+                    ) : (
+                      <GitBranch className="h-4 w-4 mr-2" />
+                    )}
+                    Generate {pendingGenType === 'roadmap' ? 'Roadmap' : 'Mindmap'}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Source panel */}
           <AnimatePresence>
