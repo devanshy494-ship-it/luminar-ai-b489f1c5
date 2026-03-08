@@ -61,6 +61,9 @@ export default function Landing() {
           </div>
           <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={() => navigate('/admin')} className="text-muted-foreground hover:text-foreground">
+              <Shield className="h-5 w-5" />
+            </Button>
             {user ? (
               <Button variant="glow" onClick={() => navigate('/dashboard')}>
                 Dashboard <ArrowRight className="ml-2 h-4 w-4" />
