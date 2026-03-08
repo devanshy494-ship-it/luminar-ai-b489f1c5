@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, Flame, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, XCircle } from 'lucide-react';
+import { BookOpen, Plus, Flame, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, XCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -38,6 +38,7 @@ interface QuizResult {
   total: number;
   step_index: number | null;
   wrong_questions: any[];
+  questions: any[];
   completed_at: string;
   topics: { title: string } | null;
 }
@@ -57,15 +58,12 @@ export default function Dashboard() {
   const fetchAll = async () => {
     if (!user) return;
 
-    // Topics
     supabase.from('topics').select('id, title, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(6)
       .then(({ data }) => { setTopics(data || []); setLoading(false); });
 
-    // Roadmaps
     supabase.from('roadmaps').select('id, progress, created_at, topic_id, topics(title)').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { setRoadmaps((data as any) || []); setLoadingRoadmaps(false); });
 
-    // Flashcards - group by topic_id and step_index
     supabase.from('flashcards').select('id, topic_id, step_index, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(async ({ data: flashcards }) => {
         if (!flashcards || flashcards.length === 0) { setFlashcardGroups([]); setLoadingFlashcards(false); return; }
@@ -74,7 +72,6 @@ export default function Dashboard() {
         const topicMap: Record<string, string> = {};
         topicData?.forEach(t => { topicMap[t.id] = t.title; });
 
-        // Also fetch roadmaps to get step titles
         const { data: roadmapData } = await supabase.from('roadmaps').select('topic_id, steps').in('topic_id', topicIds);
         const stepsMap: Record<string, any[]> = {};
         roadmapData?.forEach(r => { stepsMap[r.topic_id] = r.steps as any[]; });
@@ -96,8 +93,7 @@ export default function Dashboard() {
         setLoadingFlashcards(false);
       });
 
-    // Quiz results
-    supabase.from('quiz_results').select('id, topic_id, score, total, step_index, wrong_questions, completed_at, topics(title)').eq('user_id', user.id).order('completed_at', { ascending: false })
+    supabase.from('quiz_results').select('id, topic_id, score, total, step_index, wrong_questions, questions, completed_at, topics(title)').eq('user_id', user.id).order('completed_at', { ascending: false })
       .then(({ data }) => { setQuizResults((data as any) || []); setLoadingQuizzes(false); });
   };
 
@@ -138,9 +134,20 @@ export default function Dashboard() {
     toast.success('Quiz result deleted');
   };
 
+  const handleRetryWrong = (quiz: QuizResult) => {
+    if (!quiz.wrong_questions || quiz.wrong_questions.length === 0) return;
+    navigate(`/quiz/${quiz.topic_id}`, {
+      state: {
+        questions: quiz.wrong_questions,
+        topicTitle: quiz.topics?.title || 'Quiz',
+        stepIndex: quiz.step_index ?? undefined,
+        retryMode: true,
+      },
+    });
+  };
+
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
 
-  // Group quiz results by topic → step
   const quizByTopic: Record<string, { title: string; quizzes: QuizResult[] }> = {};
   quizResults.forEach(q => {
     if (!quizByTopic[q.topic_id]) {
@@ -176,12 +183,20 @@ export default function Dashboard() {
             <h3 className="font-serif font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
           </button>
-          <button onClick={() => navigate('/flashcards')} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
+          <button onClick={() => {
+            const tabEl = document.querySelector('[data-state][value="flashcards"]');
+            if (tabEl) (tabEl as HTMLElement).click();
+            else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
             <Sparkles className="h-8 w-8 text-accent mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
             <p className="text-sm text-muted-foreground">Study with AI-generated cards</p>
           </button>
-          <button onClick={() => navigate('/quiz')} className="group p-6 rounded-xl bg-success/5 border border-success/20 hover:border-success/40 hover:bg-success/10 transition-all text-left">
+          <button onClick={() => {
+            const tabEl = document.querySelector('[data-state][value="quizzes"]');
+            if (tabEl) (tabEl as HTMLElement).click();
+            else window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          }} className="group p-6 rounded-xl bg-success/5 border border-success/20 hover:border-success/40 hover:bg-success/10 transition-all text-left">
             <Target className="h-8 w-8 text-success mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
@@ -311,9 +326,13 @@ export default function Dashboard() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {quiz.wrong_questions && quiz.wrong_questions.length > 0 && (
-                                    <span className="text-xs px-2 py-1 rounded-md bg-destructive/10 text-destructive flex items-center gap-1">
-                                      <XCircle className="h-3 w-3" /> {quiz.wrong_questions.length} wrong
-                                    </span>
+                                    <button
+                                      onClick={() => handleRetryWrong(quiz)}
+                                      className="text-xs px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors flex items-center gap-1 font-medium"
+                                      title="Retry wrong questions"
+                                    >
+                                      <RotateCcw className="h-3 w-3" /> Retry {quiz.wrong_questions.length}
+                                    </button>
                                   )}
                                   <div className={`h-2 w-2 rounded-full ${quiz.score / quiz.total >= 0.7 ? 'bg-success' : quiz.score / quiz.total >= 0.4 ? 'bg-warning' : 'bg-destructive'}`} />
                                 </div>
