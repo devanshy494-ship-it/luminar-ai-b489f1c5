@@ -222,8 +222,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
           <div className="p-5 rounded-xl bg-card border border-border text-center">
- <Crosshair mb-2" />
-            <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
+ <Crosshair  <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
             <p className="text-sm text-muted-foreground">Quizzes</p>
           </div>
         </motion.div>
@@ -235,8 +234,7 @@ export default function Dashboard() {
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
-                <TabsTriggerCrosshairCrosshairCr value="quizzes"><Cr value="quizzes"><Crosshairigger>
-                <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
+                <TabsTriggerCrosshairCrosshairCr value="quizzes"><Cr value="quizzes"><Cr value="quizzes"><CrosshairbsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
                 <Plus className="h-4 w-4 mr-2" /> New Topic
@@ -354,7 +352,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                CrosshairStaCrosshairn={Ta<EmptyState icon={Crosshairesc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
+                CrosshairStaCrosshairn={Ta<EmptyState icon={Crosshai<EmptyState icon={Crosshairadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
               </motion.div>
             </TabsContent>
@@ -397,7 +395,7 @@ export default function Dashboard() {
                 {/* Quiz History */}
                 <div>
                   <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
-         Crosshair     <Target className="h-5 w-5 text-warning" /> Quiz Results
+         Crosshair     <Target classNa<Crosshairing" /> Quiz Results
                   </h3>
                   {loadingQuizzes ? (
                     <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
