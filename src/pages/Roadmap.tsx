@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal, Download, Settings2, Type } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal, Download, Settings2, Type, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -79,6 +79,7 @@ export default function Roadmap() {
   const [minWords, setMinWords] = useState<number | ''>('');
   const [maxWords, setMaxWords] = useState<number | ''>('');
   const [showWordSettings, setShowWordSettings] = useState(false);
+  const [generatingMindmap, setGeneratingMindmap] = useState(false);
 
   // Calculate total word count across all generated lessons
   const totalWordCount = Object.values(lessons).reduce((total, lesson) => {
@@ -332,6 +333,30 @@ export default function Roadmap() {
             <Button variant="outline" size="sm" onClick={() => { setExportStepIndex(null); setShowExportDialog(true); }}>
               <Download className="h-4 w-4 mr-2" />
               Export for Notion
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={generatingMindmap}
+              onClick={async () => {
+                setGeneratingMindmap(true);
+                try {
+                  const { data, error } = await supabase.functions.invoke('generate-mindmap', {
+                    body: { topic: topic.title },
+                  });
+                  if (error) throw error;
+                  if (data?.error) { toast.error(data.error); return; }
+                  toast.success('Mindmap generated!');
+                  navigate('/mindmap', { state: { mindmap: data.mindmap, fromTopic: topic.title, topicId: topic.id } });
+                } catch (e: any) {
+                  toast.error(e?.message || 'Failed to generate mindmap');
+                } finally {
+                  setGeneratingMindmap(false);
+                }
+              }}
+            >
+              {generatingMindmap ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <GitBranch className="h-4 w-4 mr-2" />}
+              Mindmap
             </Button>
           </div>
 

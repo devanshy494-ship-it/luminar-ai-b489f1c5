@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle } from 'lucide-react';
+import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,6 +67,7 @@ async function extractTextFromFile(file: File): Promise<string> {
 export default function Learn() {
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadingMindmap, setLoadingMindmap] = useState(false);
   const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [sourceType, setSourceType] = useState<SourceType>('file');
   const [sourceUrl, setSourceUrl] = useState('');
@@ -155,6 +156,34 @@ export default function Learn() {
     setSourceUrl('');
     setSourceText('');
     setSourceError('');
+  };
+
+  const handleGenerateMindmap = async (topicText: string) => {
+    const trimmed = topicText.trim();
+    if (!trimmed) {
+      toast.error('Please enter a topic');
+      return;
+    }
+
+    setLoadingMindmap(true);
+    try {
+      const body: any = { topic: trimmed };
+      if (extractedContent && extractedContent.length > 50) {
+        body.sourceContent = extractedContent.slice(0, 15000);
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-mindmap', { body });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+
+      toast.success('Mindmap generated!');
+      navigate('/mindmap', { state: { mindmap: data.mindmap, fromTopic: trimmed } });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Failed to generate mindmap');
+    } finally {
+      setLoadingMindmap(false);
+    }
   };
 
   const handleGenerate = async (topicText: string) => {
@@ -256,15 +285,30 @@ export default function Learn() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 className="text-base py-6 pl-14 focus:border-primary/50 focus:ring-primary/30"
-                disabled={loading}
+                disabled={loading || loadingMindmap}
                 maxLength={200}
               />
             </div>
-            <Button type="submit" size="lg" variant="glow" className="px-6 py-6" disabled={loading}>
+            <Button type="submit" size="lg" variant="glow" className="px-6 py-6" disabled={loading || loadingMindmap} title="Generate Roadmap">
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <Sparkles className="h-5 w-5" />
+              )}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="px-6 py-6"
+              disabled={loading || loadingMindmap || !topic.trim()}
+              onClick={() => handleGenerateMindmap(topic)}
+              title="Generate Mindmap"
+            >
+              {loadingMindmap ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <GitBranch className="h-5 w-5" />
               )}
             </Button>
           </form>
