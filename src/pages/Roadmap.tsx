@@ -304,14 +304,14 @@ export default function Roadmap() {
                             }
                             const resource = r as Resource;
                             const Icon = resource.type === 'video' ? Play : resource.type === 'docs' ? FileText : resource.type === 'exercise' ? Dumbbell : ExternalLink;
-                            const colorClass = resource.type === 'video' ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'text-primary bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'text-accent bg-accent/10 hover:bg-accent/20' : 'text-muted-foreground bg-muted hover:bg-muted/80';
+                            const bgClass = resource.type === 'video' ? 'bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'bg-accent/10 hover:bg-accent/20' : 'bg-muted hover:bg-muted/80';
                             return (
                               <a
                                 key={ri}
                                 href={resource.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors ${colorClass}`}
+                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors text-primary ${bgClass}`}
                               >
                                 <Icon className="h-3 w-3" />
                                 {resource.name}
