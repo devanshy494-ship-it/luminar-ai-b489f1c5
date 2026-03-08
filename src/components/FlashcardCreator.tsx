@@ -122,7 +122,7 @@ export default function FlashcardCreator() {
     return /(?:youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)/.test(urlStr);
   };
 
-  const handleAnalyze = async (manualTranscriptOverride?: string) => {
+  const handleAnalyze = async () => {
     setError('');
     setStep('analyzing');
 
@@ -132,29 +132,19 @@ export default function FlashcardCreator() {
         if (!url.trim()) throw new Error('Please enter a URL');
         const cleanUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
 
-        // Check if YouTube URL — fetch transcript first
+        // YouTube URLs use the dedicated youtube-flashcards function (skips analyze step)
         if (isYouTubeUrl(cleanUrl)) {
-          const invokeBody: any = { url: cleanUrl };
-          if (manualTranscriptOverride) {
-            invokeBody.manualTranscript = manualTranscriptOverride;
-          }
-          const { data: ytData, error: ytError } = await supabase.functions.invoke('youtube-transcript', {
-            body: invokeBody,
+          setStep('generating');
+          const { data, error: fnError } = await supabase.functions.invoke('youtube-flashcards', {
+            body: { url: cleanUrl, cardCount: 20 },
           });
-          if (ytError) throw ytError;
-          if (ytData?.error) {
-            if (ytData?.fallbackToManual && !manualTranscriptOverride) {
-              setShowYtFallback(true);
-              setError('Auto-extraction failed. Paste the transcript manually below.');
-              setStep('input');
-              return;
-            }
-            throw new Error(ytData.error);
-          }
+          if (fnError) throw fnError;
+          if (data?.error) throw new Error(data.error);
 
-          body.content = ytData.transcript;
-          setExtractedContent(ytData.transcript);
-          setShowYtFallback(false);
+          setResult(data);
+          setStep('done');
+          toast.success(`${data.cardsGenerated} flashcards generated from YouTube video!`);
+          return;
         } else {
           body.url = cleanUrl;
         }
