@@ -419,6 +419,10 @@ export default function Roadmap() {
                             {loadingExtraMaterials === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Library className="h-3 w-3 mr-1" />}
                             Extra Materials
                           </Button>
+                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setExportStepIndex(i); setShowExportDialog(true); }}>
+                            <Download className="h-3 w-3 mr-1" />
+                            Export
+                          </Button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeepDiveStep(deepDiveStep === i ? null : i); }}
                             className="h-8 w-8 rounded-full bg-primary/10 hover:bg-primary/20 flex items-center justify-center transition-colors"
