@@ -226,8 +226,32 @@ export default function Roadmap() {
       setLoadingDeepDive(false);
     }
   };
+  const handleExtraMaterials = async (stepIndex: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (showExtraMaterials === stepIndex) {
+      setShowExtraMaterials(null);
+      return;
+    }
+    setShowExtraMaterials(stepIndex);
+    if (extraMaterials[stepIndex]) return;
+    setLoadingExtraMaterials(stepIndex);
+    try {
+      const step = roadmap!.steps[stepIndex];
+      const { data, error } = await supabase.functions.invoke('generate-extra-materials', {
+        body: { topicTitle: topic!.title, stepTitle: step.title, stepDescription: step.description },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      setExtraMaterials((prev) => ({ ...prev, [stepIndex]: data }));
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to fetch extra materials');
+      setShowExtraMaterials(null);
+    } finally {
+      setLoadingExtraMaterials(null);
+    }
+  };
 
-  if (loading) {
+
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 text-primary animate-spin" />
