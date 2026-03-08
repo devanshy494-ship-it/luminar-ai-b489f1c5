@@ -280,14 +280,28 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            {/* Flashcards Tab - Now a creator */}
+            {/* Flashcards Tab */}
             <TabsContent value="flashcards">
-              <FlashcardCreator />
+              <motion.div
+                key={`flashcards-${highlightTab && activeTab === 'flashcards' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'flashcards' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'flashcards' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
+                <FlashcardCreator />
+              </motion.div>
             </TabsContent>
 
             {/* Quizzes Tab */}
             <TabsContent value="quizzes">
-              {loadingQuizzes ? (
+              <motion.div
+                key={`quizzes-${highlightTab && activeTab === 'quizzes' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'quizzes' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'quizzes' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
                 <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
               ) : Object.keys(quizByTopic).length > 0 ? (
                 <div className="space-y-6">
