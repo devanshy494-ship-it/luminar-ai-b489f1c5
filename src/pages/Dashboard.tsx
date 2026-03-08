@@ -222,7 +222,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
           <div className="p-5 rounded-xl bg-card border border-border text-center">
- <Crosshair className="h-6 w-6 text-warning mx-auto mb-2" />
+ <Crosshairtext-warning mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
             <p className="text-sm text-muted-foreground">Quizzes</p>
           </div>
@@ -235,7 +235,7 @@ export default function Dashboard() {
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
-                <TabsTriggerCrosshairCrosshairCrosshairTarget className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
+                <TabsTriggerCrosshairCrosshairCr value="quizzes"><Crosshairmr-1.5" /> Quizzes</TabsTrigger>
                 <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
