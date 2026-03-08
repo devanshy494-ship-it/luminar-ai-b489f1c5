@@ -7,11 +7,17 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+interface Resource {
+  name: string;
+  url: string;
+  type: 'video' | 'website' | 'docs' | 'exercise';
+}
+
 interface Step {
   title: string;
   description: string;
   estimatedTime: string;
-  resources?: string[];
+  resources?: (string | Resource)[];
   completed: boolean;
   order: number;
 }
