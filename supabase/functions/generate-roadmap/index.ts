@@ -54,11 +54,19 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "You are a learning roadmap generator. Given a topic, create a structured learning roadmap with 5-8 steps. Each step should have a title, description, and estimated time.",
+            content: `You are an expert learning roadmap generator. Given a topic, create a comprehensive, detailed learning roadmap with 8-12 steps that covers the topic from beginner to advanced. 
+
+Each step should have:
+- A clear, specific title (not vague like "Introduction" — be specific about what is covered)
+- A detailed description (3-5 sentences) explaining what the learner will study, key concepts, and why it matters
+- A realistic estimated time (e.g. "2-3 hours", "1 week")
+- 2-4 specific learning resources (e.g. "Official documentation", "Practice exercises", "Video tutorials on X")
+
+Make the roadmap progressive — each step should build on the previous one. Include both theoretical knowledge and practical application steps. For complex topics, break them into granular sub-topics rather than broad categories.`,
           },
           {
             role: "user",
-            content: `Create a learning roadmap for: "${topic.trim()}"`,
+            content: `Create a detailed, comprehensive learning roadmap for: "${topic.trim()}". Make sure the steps are specific, actionable, and cover the topic thoroughly from fundamentals to advanced concepts.`,
           },
         ],
         tools: [
