@@ -74,12 +74,14 @@ Make the roadmap progressive — each step should build on the previous one. Inc
             type: "function",
             function: {
               name: "create_roadmap",
-              description: "Create a structured learning roadmap",
+              description: "Create a comprehensive, detailed learning roadmap with 8-12 steps",
               parameters: {
                 type: "object",
                 properties: {
                   steps: {
                     type: "array",
+                    minItems: 8,
+                    maxItems: 12,
                     items: {
                       type: "object",
                       properties: {
