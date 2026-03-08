@@ -245,6 +245,13 @@ export default function Dashboard() {
 
             {/* Roadmaps Tab */}
             <TabsContent value="roadmaps">
+              <motion.div
+                key={`roadmaps-${highlightTab && activeTab === 'roadmaps' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'roadmaps' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'roadmaps' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
               {loadingRoadmaps ? (
                 <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
               ) : roadmaps.length > 0 ? (
@@ -278,6 +285,7 @@ export default function Dashboard() {
               ) : (
                 <EmptyState icon={Map} title="No roadmaps yet" desc="Generate your first learning roadmap" onAction={() => navigate('/learn')} actionText="Create Roadmap" />
               )}
+              </motion.div>
             </TabsContent>
 
             {/* Flashcards Tab */}
