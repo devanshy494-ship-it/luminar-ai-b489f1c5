@@ -39,6 +39,7 @@ const AppRoutes = () => (
     <Route path="/roadmap/:topicId" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
     <Route path="/flashcards/:topicId" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
     <Route path="/quiz/:topicId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+    <Route path="/mindmap" element={<ProtectedRoute><Mindmap /></ProtectedRoute>} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
