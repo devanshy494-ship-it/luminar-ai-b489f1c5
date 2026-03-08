@@ -33,6 +33,11 @@ interface Step {
   order: number;
 }
 
+interface LessonData {
+  sections: { heading: string; content: string }[];
+  keyTakeaways: string[];
+}
+
 interface NotionExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,7 +45,8 @@ interface NotionExportDialogProps {
   steps: Step[];
   progress: number;
   extraMaterials: Record<number, ExtraMaterials>;
-  onGenerateAllMaterials?: () => Promise<void>;
+  lessons: Record<number, LessonData>;
+  stepIndex?: number | null; // null = full export, number = single step
 }
 
 function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: number): string {
@@ -56,6 +62,61 @@ function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: nu
     }
     md += `---\n\n`;
   });
+
+  return md;
+}
+
+function generateStepMarkdown(
+  topicTitle: string,
+  step: Step,
+  stepIndex: number,
+  lesson?: LessonData,
+  materials?: ExtraMaterials
+): string {
+  let md = `# Step ${stepIndex + 1}: ${step.title}\n\n`;
+  md += `*Part of: ${topicTitle}*\n\n`;
+  md += `${step.description}\n\n`;
+  if (step.estimatedTime) {
+    md += `⏱️ *Estimated time: ${step.estimatedTime}*\n\n`;
+  }
+
+  if (lesson) {
+    md += `---\n\n## 📖 Lesson\n\n`;
+    lesson.sections.forEach((section) => {
+      md += `### ${section.heading}\n\n${section.content}\n\n`;
+    });
+    if (lesson.keyTakeaways.length > 0) {
+      md += `### 🔑 Key Takeaways\n\n`;
+      lesson.keyTakeaways.forEach((t) => {
+        md += `- ${t}\n`;
+      });
+      md += `\n`;
+    }
+  }
+
+  if (materials) {
+    const categoryConfig = [
+      { key: 'videos' as const, emoji: '🎥', label: 'Videos' },
+      { key: 'websites' as const, emoji: '🌐', label: 'Websites' },
+      { key: 'books' as const, emoji: '📖', label: 'Books' },
+      { key: 'apps' as const, emoji: '📱', label: 'Apps' },
+      { key: 'other' as const, emoji: '📌', label: 'Other' },
+    ];
+    const hasContent = categoryConfig.some((c) => materials[c.key]?.length > 0);
+    if (hasContent) {
+      md += `---\n\n## 📚 Extra Materials\n\n`;
+      categoryConfig.forEach(({ key, emoji, label }) => {
+        const items = materials[key];
+        if (!items || items.length === 0) return;
+        md += `### ${emoji} ${label}\n\n`;
+        items.forEach((item) => {
+          md += `- **[${item.name}](${item.url})**\n`;
+          if (item.description) md += `  ${item.description}\n`;
+        });
+        md += `\n`;
+      });
+    }
+  }
 
   return md;
 }
@@ -132,30 +193,48 @@ export default function NotionExportDialog({
   steps,
   progress,
   extraMaterials,
+  lessons,
+  stepIndex,
 }: NotionExportDialogProps) {
   const [exportRoadmap, setExportRoadmap] = useState(true);
   const [exportMaterials, setExportMaterials] = useState(true);
+  const [exportLesson, setExportLesson] = useState(true);
   const [exporting, setExporting] = useState(false);
 
+  const isSingleStep = stepIndex != null;
   const materialsCount = Object.keys(extraMaterials).length;
-  const hasMaterials = materialsCount > 0;
+  const hasMaterials = isSingleStep ? !!extraMaterials[stepIndex] : materialsCount > 0;
+  const hasLesson = isSingleStep ? !!lessons[stepIndex] : false;
 
   const handleExport = async () => {
     setExporting(true);
     try {
       const safeName = topicTitle.replace(/[^a-zA-Z0-9 ]/g, '').trim().replace(/\s+/g, '-');
 
-      if (exportRoadmap) {
-        const roadmapMd = generateRoadmapMarkdown(topicTitle, steps, progress);
-        downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
+      if (isSingleStep) {
+        // Single step export — one file with lesson + materials
+        const step = steps[stepIndex];
+        const stepMd = generateStepMarkdown(
+          topicTitle,
+          step,
+          stepIndex,
+          exportLesson ? lessons[stepIndex] : undefined,
+          exportMaterials ? extraMaterials[stepIndex] : undefined
+        );
+        downloadMarkdown(`Step-${stepIndex + 1}-${safeName}.md`, stepMd);
+      } else {
+        // Full export
+        if (exportRoadmap) {
+          const roadmapMd = generateRoadmapMarkdown(topicTitle, steps, progress);
+          downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
+        }
+
+        if (exportMaterials && hasMaterials) {
+          const materialsMd = generateExtraMaterialsMarkdown(topicTitle, steps, extraMaterials);
+          downloadMarkdown(`Extra-Materials-${safeName}.md`, materialsMd);
+        }
       }
 
-      if (exportMaterials && hasMaterials) {
-        const materialsMd = generateExtraMaterialsMarkdown(topicTitle, steps, extraMaterials);
-        downloadMarkdown(`Extra-Materials-${safeName}.md`, materialsMd);
-      }
-
-      // Small delay between downloads
       await new Promise((r) => setTimeout(r, 300));
       onOpenChange(false);
     } finally {
@@ -163,66 +242,117 @@ export default function NotionExportDialog({
     }
   };
 
+  const stepTitle = isSingleStep ? steps[stepIndex]?.title : '';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="h-5 w-5 text-primary" />
-            Export for Notion
+            {isSingleStep ? `Export Step ${stepIndex + 1}` : 'Export for Notion'}
           </DialogTitle>
           <DialogDescription>
-            Download Markdown files formatted for Notion. Import them via Notion's{' '}
-            <strong>"Import"</strong> feature to preserve full structure.
+            {isSingleStep
+              ? `Download "${stepTitle}" as a Markdown file for Notion.`
+              : 'Download Markdown files formatted for Notion. Import them via Notion\'s "Import" feature to preserve full structure.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Roadmap checkbox */}
-          <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
-            <Checkbox
-              checked={exportRoadmap}
-              onCheckedChange={(v) => setExportRoadmap(v === true)}
-              className="mt-0.5"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 font-medium text-foreground">
-                <BookOpen className="h-4 w-4 text-primary" />
-                Roadmap
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {steps.length} steps with descriptions, progress, and status
-              </p>
-            </div>
-          </label>
+          {isSingleStep ? (
+            <>
+              {/* Lesson checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
+                <Checkbox
+                  checked={exportLesson}
+                  onCheckedChange={(v) => setExportLesson(v === true)}
+                  disabled={!hasLesson}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    Lesson Content
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {hasLesson
+                      ? 'Include lesson sections and key takeaways'
+                      : 'No lesson loaded — expand this step first'}
+                  </p>
+                </div>
+              </label>
 
-          {/* Extra Materials checkbox */}
-          <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
-            <Checkbox
-              checked={exportMaterials}
-              onCheckedChange={(v) => setExportMaterials(v === true)}
-              disabled={!hasMaterials}
-              className="mt-0.5"
-            />
-            <div className="flex-1">
-              <div className="flex items-center gap-2 font-medium text-foreground">
-                <Library className="h-4 w-4 text-primary" />
-                Extra Materials
-              </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
-                {hasMaterials
-                  ? `Resources loaded for ${materialsCount} of ${steps.length} steps`
-                  : 'No materials loaded yet — open "Extra Materials" per step first'}
-              </p>
-            </div>
-          </label>
+              {/* Materials checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
+                <Checkbox
+                  checked={exportMaterials}
+                  onCheckedChange={(v) => setExportMaterials(v === true)}
+                  disabled={!hasMaterials}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <Library className="h-4 w-4 text-primary" />
+                    Extra Materials
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {hasMaterials
+                      ? 'Include curated resources (videos, websites, books...)'
+                      : 'No materials loaded — click "Extra Materials" first'}
+                  </p>
+                </div>
+              </label>
+            </>
+          ) : (
+            <>
+              {/* Full Roadmap checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
+                <Checkbox
+                  checked={exportRoadmap}
+                  onCheckedChange={(v) => setExportRoadmap(v === true)}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <BookOpen className="h-4 w-4 text-primary" />
+                    Roadmap
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {steps.length} steps with descriptions, progress, and status
+                  </p>
+                </div>
+              </label>
+
+              {/* Full Materials checkbox */}
+              <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
+                <Checkbox
+                  checked={exportMaterials}
+                  onCheckedChange={(v) => setExportMaterials(v === true)}
+                  disabled={!hasMaterials}
+                  className="mt-0.5"
+                />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <Library className="h-4 w-4 text-primary" />
+                    Extra Materials
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {hasMaterials
+                      ? `Resources loaded for ${materialsCount} of ${steps.length} steps`
+                      : 'No materials loaded yet — open "Extra Materials" per step first'}
+                  </p>
+                </div>
+              </label>
+            </>
+          )}
 
           {/* Info note */}
           <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
             <FileText className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               In Notion: click <strong>···</strong> → <strong>Import</strong> → select the downloaded
-              <strong> .md</strong> file(s). Structure, headings, and links will be preserved.
+              <strong> .md</strong> file. Structure, headings, and links will be preserved.
             </span>
           </div>
         </div>
@@ -233,7 +363,7 @@ export default function NotionExportDialog({
           </Button>
           <Button
             onClick={handleExport}
-            disabled={exporting || (!exportRoadmap && !exportMaterials) || (!exportRoadmap && !hasMaterials)}
+            disabled={exporting || (isSingleStep ? (!exportLesson && !exportMaterials) : (!exportRoadmap && !exportMaterials))}
             size="sm"
             variant="glow"
           >
@@ -242,7 +372,7 @@ export default function NotionExportDialog({
             ) : (
               <Download className="h-4 w-4 mr-2" />
             )}
-            Download {[exportRoadmap && 'Roadmap', exportMaterials && hasMaterials && 'Materials'].filter(Boolean).join(' & ')}
+            {isSingleStep ? 'Download Step' : `Download ${[exportRoadmap && 'Roadmap', exportMaterials && hasMaterials && 'Materials'].filter(Boolean).join(' & ')}`}
           </Button>
         </DialogFooter>
       </DialogContent>

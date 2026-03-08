@@ -75,6 +75,7 @@ export default function Roadmap() {
   const [loadingExtraMaterials, setLoadingExtraMaterials] = useState<number | null>(null);
   const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportStepIndex, setExportStepIndex] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -312,7 +313,7 @@ export default function Roadmap() {
               <Layers className="h-4 w-4 mr-2" />
               View Flashcards {flashcardCount > 0 && `(${flashcardCount})`}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+            <Button variant="outline" size="sm" onClick={() => { setExportStepIndex(null); setShowExportDialog(true); }}>
               <Download className="h-4 w-4 mr-2" />
               Export for Notion
             </Button>
@@ -325,6 +326,8 @@ export default function Roadmap() {
             steps={roadmap.steps}
             progress={roadmap.progress}
             extraMaterials={extraMaterials}
+            lessons={lessons}
+            stepIndex={exportStepIndex}
           />
 
           {/* Progress Bar */}
@@ -418,6 +421,10 @@ export default function Roadmap() {
                           <Button variant="outline" size="sm" onClick={(e) => handleExtraMaterials(i, e)} disabled={loadingExtraMaterials === i}>
                             {loadingExtraMaterials === i ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Library className="h-3 w-3 mr-1" />}
                             Extra Materials
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setExportStepIndex(i); setShowExportDialog(true); }}>
+                            <Download className="h-3 w-3 mr-1" />
+                            Export
                           </Button>
                           <button
                             onClick={(e) => { e.stopPropagation(); setDeepDiveStep(deepDiveStep === i ? null : i); }}
