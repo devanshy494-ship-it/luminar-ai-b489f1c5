@@ -14,7 +14,168 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      flashcards: {
+        Row: {
+          back: string
+          created_at: string
+          front: string
+          id: string
+          mastery_level: number
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string
+          front: string
+          id?: string
+          mastery_level?: number
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string
+          front?: string
+          id?: string
+          mastery_level?: number
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcards_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      quiz_results: {
+        Row: {
+          completed_at: string
+          id: string
+          questions: Json
+          score: number
+          topic_id: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string
+          id?: string
+          questions?: Json
+          score: number
+          topic_id: string
+          total: number
+          user_id: string
+        }
+        Update: {
+          completed_at?: string
+          id?: string
+          questions?: Json
+          score?: number
+          topic_id?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_results_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roadmaps: {
+        Row: {
+          created_at: string
+          id: string
+          progress: number
+          steps: Json
+          topic_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          progress?: number
+          steps?: Json
+          topic_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          progress?: number
+          steps?: Json
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmaps_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      topics: {
+        Row: {
+          created_at: string
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
