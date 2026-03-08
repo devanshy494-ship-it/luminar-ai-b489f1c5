@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,6 +23,7 @@ export default function Quiz() {
   const topicTitle: string = location.state?.topicTitle || 'Quiz';
   const stepIndex: number | undefined = location.state?.stepIndex;
   const stepTitle: string | undefined = location.state?.stepTitle;
+  const retryMode: boolean = location.state?.retryMode || false;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
@@ -61,7 +62,7 @@ export default function Quiz() {
       setShowResult(false);
     } else {
       setFinished(true);
-      if (user && topicId) {
+      if (user && topicId && !retryMode) {
         try {
           await supabase.from('quiz_results').insert({
             topic_id: topicId,
@@ -79,6 +80,27 @@ export default function Quiz() {
     }
   };
 
+  const handleRetryWrong = () => {
+    if (wrongQuestions.length === 0) return;
+    navigate(`/quiz/${topicId}`, {
+      state: {
+        questions: wrongQuestions,
+        topicTitle,
+        stepIndex,
+        stepTitle,
+        retryMode: true,
+      },
+      replace: true,
+    });
+    // Reset local state for retry
+    setCurrentIndex(0);
+    setSelectedAnswer(null);
+    setShowResult(false);
+    setScore(0);
+    setFinished(false);
+    setWrongQuestions([]);
+  };
+
   if (finished) {
     const percentage = Math.round((score / questions.length) * 100);
     return (
@@ -94,7 +116,9 @@ export default function Quiz() {
         <main className="container mx-auto px-4 py-16 max-w-lg text-center">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
             <Trophy className={`h-16 w-16 mx-auto mb-6 ${percentage >= 70 ? 'text-primary' : 'text-muted-foreground'}`} />
-            <h1 className="text-3xl font-bold text-foreground mb-2">Quiz Complete!</h1>
+            <h1 className="text-3xl font-bold text-foreground mb-2">
+              {retryMode ? 'Retry Complete!' : 'Quiz Complete!'}
+            </h1>
             <p className="text-muted-foreground text-lg mb-1">{topicTitle}</p>
             {stepTitle && <p className="text-sm text-muted-foreground mb-8">Step: {stepTitle}</p>}
             {!stepTitle && <div className="mb-8" />}
@@ -130,7 +154,13 @@ export default function Quiz() {
             )}
 
             <div className="flex flex-col gap-3">
-              <Button onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
+              {wrongQuestions.length > 0 && (
+                <Button onClick={handleRetryWrong} variant="default" className="gap-2">
+                  <RotateCcw className="h-4 w-4" />
+                  Retry Wrong Questions ({wrongQuestions.length})
+                </Button>
+              )}
+              <Button variant={wrongQuestions.length > 0 ? 'outline' : 'default'} onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
               <Button variant="outline" onClick={() => navigate('/dashboard')}>Dashboard</Button>
             </div>
           </motion.div>
@@ -148,6 +178,7 @@ export default function Quiz() {
             <span className="font-serif text-xl font-bold text-foreground">Luminar</span>
           </div>
           <div className="flex items-center gap-3">
+            {retryMode && <span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning font-medium">Retry Mode</span>}
             {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block">{stepTitle}</span>}
             <Button variant="ghost" size="sm" onClick={() => navigate(`/roadmap/${topicId}`)}>
               <ArrowLeft className="h-4 w-4 mr-2" /> Exit Quiz
