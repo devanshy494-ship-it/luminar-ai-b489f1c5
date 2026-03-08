@@ -185,7 +185,7 @@ export default function Quiz() {
           <div className="flex items-center gap-3">
             {retryMode && <span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning font-medium">Retry Mode</span>}
             {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block">{stepTitle}</span>}
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/roadmap/${topicId}`)}>
+            <Button variant="ghost" size="sm" onClick={() => navigate(isCustomQuiz ? '/dashboard' : `/roadmap/${topicId}`)}>
               <ArrowLeft className="h-4 w-4 mr-2" /> Exit Quiz
             </Button>
           </div>

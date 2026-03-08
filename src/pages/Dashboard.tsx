@@ -495,8 +495,9 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <EmptyState icon={Zap} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
+                <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No quiz results yet</p>
               )}
+                </div>
               </motion.div>
             </TabsContent>
 
