@@ -32,6 +32,8 @@ export default function Quiz() {
   const [finished, setFinished] = useState(false);
   const [wrongQuestions, setWrongQuestions] = useState<Question[]>([]);
 
+  const isCustomQuiz = topicId === 'custom';
+
   if (questions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
