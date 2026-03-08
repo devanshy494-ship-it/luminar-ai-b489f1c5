@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { topic } = await req.json();
+    const { topic, sourceContent } = await req.json();
     if (!topic || typeof topic !== "string" || topic.trim().length === 0 || topic.length > 200) {
       return new Response(JSON.stringify({ error: "Invalid topic" }), {
         status: 400,
@@ -43,6 +43,24 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Build system prompt — include source content if provided
+    const hasSource = sourceContent && typeof sourceContent === "string" && sourceContent.length > 50;
+    const truncatedSource = hasSource ? sourceContent.slice(0, 15000) : "";
+
+    const systemPrompt = `You are an expert learning roadmap generator. Given a topic${hasSource ? " and source material" : ""}, create a comprehensive, detailed learning roadmap with 8-12 steps that covers the topic from beginner to advanced. 
+
+Each step should have:
+- A clear, specific title (not vague like "Introduction" — be specific about what is covered)
+- A detailed description (3-5 sentences) explaining what the learner will study, key concepts, and why it matters
+- A realistic estimated time (e.g. "2-3 hours", "1 week")
+- 2-4 specific learning resources (e.g. "Official documentation", "Practice exercises", "Video tutorials on X")
+
+Make the roadmap progressive — each step should build on the previous one. Include both theoretical knowledge and practical application steps. For complex topics, break them into granular sub-topics rather than broad categories.${hasSource ? "\n\nIMPORTANT: Use the provided source material to create a highly relevant and specific roadmap. Extract key concepts, terminology, and structure from the source content to make the roadmap deeply aligned with the material." : ""}`;
+
+    const userContent = hasSource
+      ? `Create a detailed, comprehensive learning roadmap for: "${topic.trim()}".\n\nSource material to base the roadmap on:\n\n${truncatedSource}`
+      : `Create a detailed, comprehensive learning roadmap for: "${topic.trim()}". Make sure the steps are specific, actionable, and cover the topic thoroughly from fundamentals to advanced concepts.`;
+
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -52,22 +70,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          {
-            role: "system",
-            content: `You are an expert learning roadmap generator. Given a topic, create a comprehensive, detailed learning roadmap with 8-12 steps that covers the topic from beginner to advanced. 
-
-Each step should have:
-- A clear, specific title (not vague like "Introduction" — be specific about what is covered)
-- A detailed description (3-5 sentences) explaining what the learner will study, key concepts, and why it matters
-- A realistic estimated time (e.g. "2-3 hours", "1 week")
-- 2-4 specific learning resources (e.g. "Official documentation", "Practice exercises", "Video tutorials on X")
-
-Make the roadmap progressive — each step should build on the previous one. Include both theoretical knowledge and practical application steps. For complex topics, break them into granular sub-topics rather than broad categories.`,
-          },
-          {
-            role: "user",
-            content: `Create a detailed, comprehensive learning roadmap for: "${topic.trim()}". Make sure the steps are specific, actionable, and cover the topic thoroughly from fundamentals to advanced concepts.`,
-          },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
         ],
         tools: [
           {
