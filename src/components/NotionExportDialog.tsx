@@ -277,16 +277,17 @@ export default function NotionExportDialog({
         );
         downloadMarkdown(`Step-${stepIndex + 1}-${safeName}.md`, stepMd);
       } else {
-        // Full export
-        if (exportRoadmap) {
-          const roadmapMd = generateRoadmapMarkdown(topicTitle, steps, progress);
-          downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
-        }
-
-        if (exportMaterials && hasMaterials) {
-          const materialsMd = generateExtraMaterialsMarkdown(topicTitle, steps, extraMaterials);
-          downloadMarkdown(`Extra-Materials-${safeName}.md`, materialsMd);
-        }
+        // Full detailed export — one comprehensive file
+        const roadmapMd = generateRoadmapMarkdown(
+          topicTitle,
+          steps,
+          progress,
+          lessons,
+          extraMaterials,
+          exportLesson && hasLessons,
+          exportMaterials && hasMaterials
+        );
+        downloadMarkdown(`Roadmap-${safeName}.md`, roadmapMd);
       }
 
       await new Promise((r) => setTimeout(r, 300));
