@@ -181,7 +181,7 @@ export default function Learn() {
       if (data?.error) { toast.error(data.error); return; }
 
       toast.success('Mindmap generated!');
-      navigate('/mindmap', { state: { mindmap: data.mindmap, fromTopic: trimmed } });
+      navigate(`/mindmap/${data.mindmapId}`, { state: { mindmap: data.mindmap, fromTopic: trimmed } });
     } catch (e: any) {
       console.error(e);
       toast.error(e?.message || 'Failed to generate mindmap');

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Zap, Map, Trash2, RotateCcw, History, Clock, Pencil, CheckSquare, Merge, X, Check } from 'lucide-react';
+import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Zap, Map, Trash2, RotateCcw, History, Clock, Pencil, CheckSquare, Merge, X, Check, GitBranch } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -50,6 +50,12 @@ interface QuizResult {
   topics: { title: string } | null;
 }
 
+interface MindmapItem {
+  id: string;
+  topic: string;
+  created_at: string;
+}
+
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -57,10 +63,12 @@ export default function Dashboard() {
   const [roadmaps, setRoadmaps] = useState<RoadmapWithTopic[]>([]);
   const [flashcardGroups, setFlashcardGroups] = useState<FlashcardGroup[]>([]);
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
+  const [mindmaps, setMindmaps] = useState<MindmapItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [loadingMindmaps, setLoadingMindmaps] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [activeTab, setActiveTab] = useState("roadmaps");
   const [highlightTab, setHighlightTab] = useState(false);
@@ -139,6 +147,9 @@ export default function Dashboard() {
 
     supabase.from('quiz_results').select('id, topic_id, score, total, step_index, wrong_questions, questions, completed_at, topics(title)').eq('user_id', user.id).order('completed_at', { ascending: false })
       .then(({ data }) => { setQuizResults((data as any) || []); setLoadingQuizzes(false); });
+
+    supabase.from('mindmaps').select('id, topic, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setMindmaps((data as any) || []); setLoadingMindmaps(false); });
   };
 
   useEffect(() => { fetchAll(); }, [user]);
@@ -176,6 +187,13 @@ export default function Dashboard() {
     await supabase.from('quiz_results').delete().eq('id', quizId);
     setQuizResults(prev => prev.filter(q => q.id !== quizId));
     toast.success('Quiz result deleted');
+  };
+
+  const handleDeleteMindmap = async (mindmapId: string) => {
+    if (!confirm('Delete this mindmap?')) return;
+    await supabase.from('mindmaps').delete().eq('id', mindmapId);
+    setMindmaps(prev => prev.filter(m => m.id !== mindmapId));
+    toast.success('Mindmap deleted');
   };
 
   const handleRetryWrong = (quiz: QuizResult) => {
@@ -325,11 +343,16 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Quick Actions */}
-        <motion.div className="grid sm:grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+        <motion.div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
           <button onClick={() => navigate('/learn')} className="group p-6 rounded-2xl glass-card border border-primary/20 hover:border-primary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-cyan)/0.3)]">
             <Brain className="h-8 w-8 text-primary mb-3" />
             <h3 className="font-heading font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
+          </button>
+          <button onClick={() => switchTabFromAction("mindmaps")} className="group p-6 rounded-2xl glass-card border border-success/20 hover:border-success/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--success)/0.3)]">
+            <GitBranch className="h-8 w-8 text-success mb-3" />
+            <h3 className="font-heading font-bold text-foreground mb-1">Mindmaps</h3>
+            <p className="text-sm text-muted-foreground">Visual topic exploration</p>
           </button>
           <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-2xl glass-card border border-secondary/20 hover:border-secondary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-purple)/0.3)]">
             <Sparkles className="h-8 w-8 text-secondary mb-3" />
@@ -344,11 +367,16 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stats */}
-        <motion.div className="grid grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
+        <motion.div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
           <div className="p-5 rounded-2xl glass-card border-t-2 border-t-primary border border-border/50 text-center">
             <Brain className="h-6 w-6 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{roadmaps.length}</p>
             <p className="text-sm text-muted-foreground">Roadmaps</p>
+          </div>
+          <div className="p-5 rounded-2xl glass-card border-t-2 border-t-success border border-border/50 text-center">
+            <GitBranch className="h-6 w-6 text-success mx-auto mb-2" />
+            <p className="text-2xl font-bold text-foreground">{mindmaps.length}</p>
+            <p className="text-sm text-muted-foreground">Mindmaps</p>
           </div>
           <div className="p-5 rounded-2xl glass-card border-t-2 border-t-secondary border border-border/50 text-center">
             <Sparkles className="h-6 w-6 text-secondary mx-auto mb-2" />
@@ -368,6 +396,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <TabsList className="glass-card border border-border/50">
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
+                <TabsTrigger value="mindmaps"><GitBranch className="h-4 w-4 mr-1.5" /> Mindmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
                 <TabsTrigger value="quizzes"><Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
                 <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
@@ -422,6 +451,42 @@ export default function Dashboard() {
               </motion.div>
             </TabsContent>
 
+            {/* Mindmaps Tab */}
+            <TabsContent value="mindmaps">
+              <motion.div
+                key={`mindmaps-${highlightTab && activeTab === 'mindmaps' ? 'highlight' : 'normal'}`}
+                initial={highlightTab && activeTab === 'mindmaps' ? { opacity: 0, y: 12, scale: 0.98 } : false}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className={highlightTab && activeTab === 'mindmaps' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
+              >
+              {loadingMindmaps ? (
+                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
+              ) : mindmaps.length > 0 ? (
+                <div className="grid gap-3">
+                  {mindmaps.map((mm) => (
+                    <div key={mm.id} className="flex items-center gap-2">
+                      <button
+                        onClick={() => navigate(`/mindmap/${mm.id}`)}
+                        className="flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border border-border/50 hover:border-success/30 card-hover transition-all text-left hover:neon-glow-sm"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-foreground truncate">{mm.topic}</h3>
+                          <p className="text-sm text-muted-foreground">{new Date(mm.created_at).toLocaleDateString()}</p>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+                      </button>
+                      <button onClick={() => handleDeleteMindmap(mm.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState icon={GitBranch} title="No mindmaps yet" desc="Generate your first visual mindmap" onAction={() => navigate('/learn')} actionText="Create Mindmap" />
+              )}
+              </motion.div>
+            </TabsContent>
             {/* Flashcards Tab */}
             <TabsContent value="flashcards">
               <motion.div
@@ -629,6 +694,38 @@ export default function Dashboard() {
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No quiz results yet</p>
+                  )}
+                </div>
+
+                {/* Mindmap History */}
+                <div>
+                  <h3 className="font-heading font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                    <GitBranch className="h-5 w-5 text-success" /> Mindmaps
+                  </h3>
+                  {loadingMindmaps ? (
+                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
+                  ) : mindmaps.length > 0 ? (
+                    <div className="grid gap-3">
+                      {mindmaps.map((mm) => (
+                        <div key={mm.id} className="flex items-center gap-2">
+                          <button
+                            onClick={() => navigate(`/mindmap/${mm.id}`)}
+                            className="flex-1 flex items-center justify-between p-4 rounded-2xl glass-card border border-border/50 hover:border-success/30 card-hover transition-all text-left"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-foreground truncate">{mm.topic}</h3>
+                              <p className="text-xs text-muted-foreground">{new Date(mm.created_at).toLocaleDateString()}</p>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+                          </button>
+                          <button onClick={() => handleDeleteMindmap(mm.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No mindmaps yet</p>
                   )}
                 </div>
               </div>
