@@ -6,10 +6,7 @@ const corsHeaders = {
 };
 
 function extractVideoId(url: string): string | null {
-  // Clean the URL
   const cleaned = url.trim();
-  
-  // Try URL parsing first for watch URLs with query params
   try {
     const parsed = new URL(cleaned);
     if (parsed.hostname.includes("youtube.com") && parsed.searchParams.has("v")) {
@@ -17,8 +14,6 @@ function extractVideoId(url: string): string | null {
       if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
     }
   } catch {}
-
-  // Regex fallback for short URLs, embeds, shorts
   const patterns = [
     /youtu\.be\/([a-zA-Z0-9_-]{11})/,
     /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
@@ -34,115 +29,81 @@ function extractVideoId(url: string): string | null {
 }
 
 async function fetchTranscript(videoId: string): Promise<string> {
+  // Step 1: Fetch the watch page to get INNERTUBE_API_KEY
   const watchUrl = `https://www.youtube.com/watch?v=${videoId}`;
-  const response = await fetch(watchUrl, {
+  const pageResponse = await fetch(watchUrl, {
     headers: {
       "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
       "Accept-Language": "en-US,en;q=0.9",
-      "Accept": "text/html,application/xhtml+xml",
     },
   });
 
-  if (!response.ok) {
+  if (!pageResponse.ok) {
     throw new Error("Failed to fetch YouTube page");
   }
 
-  const html = await response.text();
+  const html = await pageResponse.text();
+  const apiKeyMatch = html.match(/"INNERTUBE_API_KEY"\s*:\s*"([^"]+)"/);
+  const apiKey = apiKeyMatch?.[1] || "AIzaSyAO_FJ2SlqU8Q4STEHLGCilw_Y9_11qcW8"; // fallback public key
 
-  // Multiple strategies to find caption tracks
-  let captionBaseUrl: string | null = null;
-
-  // Strategy 1: Find captionTracks in the serialized player response
-  const trackPatterns = [
-    /"captionTracks"\s*:\s*(\[[\s\S]*?\])\s*,\s*"/,
-    /captionTracks":\s*(\[.*?\])/s,
-    /"baseUrl"\s*:\s*"(https:\/\/www\.youtube\.com\/api\/timedtext[^"]+)"/,
-  ];
-
-  for (const pattern of trackPatterns) {
-    const m = html.match(pattern);
-    if (!m) continue;
-
-    // If it matched a direct baseUrl
-    if (pattern === trackPatterns[2]) {
-      captionBaseUrl = m[1].replace(/\\u0026/g, "&");
-      break;
-    }
-
-    try {
-      // Fix escaped characters before parsing
-      const cleaned = m[1].replace(/\\u0026/g, "&").replace(/\\\//g, "/");
-      const tracks = JSON.parse(cleaned);
-      if (tracks && tracks.length > 0) {
-        const en = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-        const track = en || tracks[0];
-        captionBaseUrl = track.baseUrl?.replace(/\\u0026/g, "&");
-        break;
-      }
-    } catch (e) {
-      console.log("Parse attempt failed, trying next pattern");
-    }
-  }
-
-  // Strategy 2: Try constructing the timedtext URL directly
-  if (!captionBaseUrl) {
-    // Try to find any timedtext URL in the page
-    const timedtextMatch = html.match(/https?:\/\/www\.youtube\.com\/api\/timedtext[^"\\]+/);
-    if (timedtextMatch) {
-      captionBaseUrl = timedtextMatch[0].replace(/\\u0026/g, "&");
-    }
-  }
-
-  // Strategy 3: Use the innertube API to get captions
-  if (!captionBaseUrl) {
-    console.log("Trying innertube API fallback...");
-    try {
-      const innertubeResponse = await fetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          context: {
-            client: {
-              clientName: "WEB",
-              clientVersion: "2.20240101.00.00",
-              hl: "en",
-            },
+  // Step 2: Call innertube player API with ANDROID client to get caption tracks with valid URLs
+  const playerResponse = await fetch(
+    `https://www.youtube.com/youtubei/v1/player?key=${apiKey}&prettyPrint=false`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: "ANDROID",
+            clientVersion: "19.09.37",
+            androidSdkVersion: 30,
+            hl: "en",
+            gl: "US",
           },
-          videoId,
-        }),
-      });
-
-      if (innertubeResponse.ok) {
-        const playerData = await innertubeResponse.json();
-        const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-        if (tracks && tracks.length > 0) {
-          const en = tracks.find((t: any) => t.languageCode === "en" || t.languageCode?.startsWith("en"));
-          const track = en || tracks[0];
-          captionBaseUrl = track.baseUrl;
-        }
-      } else {
-        await innertubeResponse.text();
-      }
-    } catch (e) {
-      console.log("Innertube fallback failed:", e);
+        },
+        videoId,
+        contentCheckOk: true,
+        racyCheckOk: true,
+      }),
     }
+  );
+
+  if (!playerResponse.ok) {
+    const t = await playerResponse.text();
+    console.error("Player API failed:", playerResponse.status, t);
+    throw new Error("Failed to fetch video data");
   }
 
-  if (!captionBaseUrl) {
-    console.error("No caption URL found for video:", videoId);
+  const playerData = await playerResponse.json();
+  const tracks = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+
+  if (!tracks || tracks.length === 0) {
+    console.error("No caption tracks found in player response");
     throw new Error("NO_CAPTIONS");
   }
 
-  console.log("Found caption URL, fetching transcript...");
-  return await fetchCaptionXml(captionBaseUrl);
-}
+  // Prefer English, fallback to first
+  const enTrack = tracks.find((t: any) =>
+    t.languageCode === "en" || t.languageCode?.startsWith("en")
+  );
+  const track = enTrack || tracks[0];
+  const captionUrl = track.baseUrl;
 
-async function fetchCaptionXml(captionUrl: string): Promise<string> {
-  const res = await fetch(captionUrl);
-  if (!res.ok) throw new Error("Failed to fetch caption track");
-  const xml = await res.text();
+  if (!captionUrl) {
+    throw new Error("NO_CAPTIONS");
+  }
 
-  // Parse XML caption entries and extract text
+  console.log(`Found caption track: ${track.languageCode} (${track.name?.simpleText || "auto"})`);
+
+  // Step 3: Fetch the caption XML
+  const captionResponse = await fetch(captionUrl);
+  if (!captionResponse.ok) {
+    await captionResponse.text();
+    throw new Error("Failed to fetch caption data");
+  }
+
+  const xml = await captionResponse.text();
   const textSegments: string[] = [];
   const regex = /<text[^>]*>([\s\S]*?)<\/text>/g;
   let match;
@@ -158,7 +119,10 @@ async function fetchCaptionXml(captionUrl: string): Promise<string> {
     if (text) textSegments.push(text);
   }
 
-  if (textSegments.length === 0) throw new Error("NO_CAPTIONS");
+  if (textSegments.length === 0) {
+    throw new Error("NO_CAPTIONS");
+  }
+
   return textSegments.join(" ");
 }
 
@@ -174,9 +138,8 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
 
 async function cleanupTranscript(rawTranscript: string, videoTitle: string): Promise<string> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return rawTranscript; // fallback to raw if no key
+  if (!LOVABLE_API_KEY) return rawTranscript;
 
-  // Truncate to ~12000 chars for cleanup to stay within limits
   const truncated = rawTranscript.length > 12000 ? rawTranscript.slice(0, 12000) : rawTranscript;
 
   try {
@@ -200,14 +163,14 @@ async function cleanupTranscript(rawTranscript: string, videoTitle: string): Pro
 
     if (!response.ok) {
       await response.text();
-      return rawTranscript; // fallback
+      return rawTranscript;
     }
 
     const data = await response.json();
     const cleaned = data.choices?.[0]?.message?.content;
     return cleaned || rawTranscript;
   } catch {
-    return rawTranscript; // fallback
+    return rawTranscript;
   }
 }
 
@@ -226,18 +189,18 @@ serve(async (req) => {
     const videoId = extractVideoId(url);
     if (!videoId) {
       return new Response(
-        JSON.stringify({ error: "Invalid YouTube URL" }),
+        JSON.stringify({ error: "Invalid YouTube URL. Please paste a valid YouTube video link." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Fetch transcript and title in parallel
+    console.log(`Processing YouTube video: ${videoId}`);
+
     const [rawTranscript, title] = await Promise.all([
       fetchTranscript(videoId),
       fetchVideoTitle(videoId),
     ]);
 
-    // Clean up transcript with AI to fix speech-to-text errors
     const transcript = await cleanupTranscript(rawTranscript, title);
 
     return new Response(
