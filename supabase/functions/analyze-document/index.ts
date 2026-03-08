@@ -9,18 +9,16 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { content, url } = await req.json();
+    const { content, url, scope } = await req.json();
 
     let textContent = content || "";
 
-    // If URL provided, fetch and extract text
     if (url && !textContent) {
       try {
         const response = await fetch(url, {
           headers: { "User-Agent": "Mozilla/5.0 (compatible; LuminarBot/1.0)" },
         });
         const html = await response.text();
-        // Strip HTML tags to get plain text
         textContent = html
           .replace(new RegExp("<script[^>]*>[\\s\\S]*?<\\/script>", "gi"), "")
           .replace(new RegExp("<style[^>]*>[\\s\\S]*?<\\/style>", "gi"), "")
@@ -42,11 +40,14 @@ serve(async (req) => {
       );
     }
 
-    // Truncate if too long (keep first ~15000 chars for AI analysis)
     const truncated = textContent.length > 15000 ? textContent.slice(0, 15000) + "\n[...content truncated...]" : textContent;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const scopeInstruction = scope
+      ? `\n\nIMPORTANT: The user has specified a focus/scope for the flashcards: "${scope}". Only analyze and identify topics relevant to this scope. Ignore content outside this scope.`
+      : "";
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -59,7 +60,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a content analyzer. Analyze the provided text and identify the main topics and subtopics that could be turned into flashcards. For each topic, estimate how many meaningful flashcards can be created. Be thorough but realistic.`,
+            content: `You are a content analyzer. Analyze the provided text and identify the main topics and subtopics that could be turned into flashcards. For each topic, estimate how many meaningful flashcards can be created. Be thorough but realistic.${scopeInstruction}`,
           },
           {
             role: "user",
@@ -75,38 +76,22 @@ serve(async (req) => {
               parameters: {
                 type: "object",
                 properties: {
-                  title: {
-                    type: "string",
-                    description: "A concise title for this content/document",
-                  },
+                  title: { type: "string", description: "A concise title for this content/document" },
                   topics: {
                     type: "array",
                     items: {
                       type: "object",
                       properties: {
                         name: { type: "string", description: "Topic name" },
-                        subtopics: {
-                          type: "array",
-                          items: { type: "string" },
-                          description: "List of subtopics under this topic",
-                        },
-                        estimatedCards: {
-                          type: "number",
-                          description: "Estimated number of flashcards for this topic",
-                        },
+                        subtopics: { type: "array", items: { type: "string" }, description: "List of subtopics under this topic" },
+                        estimatedCards: { type: "number", description: "Estimated number of flashcards for this topic" },
                       },
                       required: ["name", "subtopics", "estimatedCards"],
                       additionalProperties: false,
                     },
                   },
-                  totalRecommendedCards: {
-                    type: "number",
-                    description: "Total recommended number of flashcards across all topics",
-                  },
-                  summary: {
-                    type: "string",
-                    description: "Brief 1-2 sentence summary of the content",
-                  },
+                  totalRecommendedCards: { type: "number", description: "Total recommended number of flashcards across all topics" },
+                  summary: { type: "string", description: "Brief 1-2 sentence summary of the content" },
                 },
                 required: ["title", "topics", "totalRecommendedCards", "summary"],
                 additionalProperties: false,

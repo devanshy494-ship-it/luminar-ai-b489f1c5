@@ -94,6 +94,7 @@ export default function FlashcardCreator() {
   const [totalCards, setTotalCards] = useState(0);
   const [result, setResult] = useState<{ topicId: string; title: string; cardsGenerated: number } | null>(null);
   const [error, setError] = useState('');
+  const [scopeInstructions, setScopeInstructions] = useState('');
 
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,6 +156,9 @@ export default function FlashcardCreator() {
         if (!extractedContent) throw new Error('Please upload a file first');
         body.content = extractedContent;
       }
+      if (scopeInstructions.trim()) {
+        body.scope = scopeInstructions.trim();
+      }
 
       const { data, error: fnError } = await supabase.functions.invoke('analyze-document', { body });
       if (fnError) throw fnError;
@@ -214,12 +218,15 @@ export default function FlashcardCreator() {
     }
 
     try {
-      const body = {
+      const body: any = {
         content: extractedContent || `[URL content: ${url}]`,
         title: analysis.title,
         selectedTopics: selectedTopics.map((t) => ({ name: t.name, subtopics: t.subtopics })),
         totalCards,
       };
+      if (scopeInstructions.trim()) {
+        body.scope = scopeInstructions.trim();
+      }
 
       // If we only have URL content, also pass the URL
       if (inputMode === 'url' && !extractedContent) {
@@ -326,6 +333,18 @@ export default function FlashcardCreator() {
                 className="resize-none"
               />
             )}
+
+            {/* Focus/Scope Instructions */}
+            <div className="mt-4">
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Focus Instructions <span className="text-muted-foreground font-normal">(optional)</span></label>
+              <Textarea
+                placeholder="e.g., Focus only on chapter 3, or only cover key formulas, or narrow down to specific concepts..."
+                value={scopeInstructions}
+                onChange={(e) => setScopeInstructions(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
 
             {error && (
               <p className="text-sm text-destructive mt-3 flex items-center gap-1">
@@ -468,6 +487,7 @@ export default function FlashcardCreator() {
                 setFileName('');
                 setUrl('');
                 setTextContent('');
+                setScopeInstructions('');
                 setError('');
               }}>
                 Create More
