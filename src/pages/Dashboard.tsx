@@ -343,11 +343,16 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Quick Actions */}
-        <motion.div className="grid sm:grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
+        <motion.div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
           <button onClick={() => navigate('/learn')} className="group p-6 rounded-2xl glass-card border border-primary/20 hover:border-primary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-cyan)/0.3)]">
             <Brain className="h-8 w-8 text-primary mb-3" />
             <h3 className="font-heading font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
+          </button>
+          <button onClick={() => switchTabFromAction("mindmaps")} className="group p-6 rounded-2xl glass-card border border-success/20 hover:border-success/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--success)/0.3)]">
+            <GitBranch className="h-8 w-8 text-success mb-3" />
+            <h3 className="font-heading font-bold text-foreground mb-1">Mindmaps</h3>
+            <p className="text-sm text-muted-foreground">Visual topic exploration</p>
           </button>
           <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-2xl glass-card border border-secondary/20 hover:border-secondary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-purple)/0.3)]">
             <Sparkles className="h-8 w-8 text-secondary mb-3" />
