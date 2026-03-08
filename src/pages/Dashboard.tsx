@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, Flame, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
+import { BookOpen, Plus, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
@@ -212,7 +212,7 @@ export default function Dashboard() {
         {/* Stats */}
         <motion.div className="grid grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
           <div className="p-5 rounded-xl bg-card border border-border text-center">
-            <Flame className="h-6 w-6 text-primary mx-auto mb-2" />
+            <Brain className="h-6 w-6 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{roadmaps.length}</p>
             <p className="text-sm text-muted-foreground">Roadmaps</p>
           </div>
