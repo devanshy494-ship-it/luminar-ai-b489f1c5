@@ -13,8 +13,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -27,34 +26,28 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { topicId } = await req.json();
+    const { topicId, stepIndex, stepTitle } = await req.json();
     if (!topicId) {
       return new Response(JSON.stringify({ error: "topicId is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: topic } = await supabase
-      .from("topics")
-      .select("title")
-      .eq("id", topicId)
-      .single();
-
+    const { data: topic } = await supabase.from("topics").select("title").eq("id", topicId).single();
     if (!topic) {
       return new Response(JSON.stringify({ error: "Topic not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -65,48 +58,37 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          {
-            role: "system",
-            content: "You are a quiz generator. Create 10 multiple-choice questions about the given topic. Each question should have 4 options with exactly one correct answer. Make questions progressively harder.",
-          },
-          {
-            role: "user",
-            content: `Create a quiz about: "${topic.title}"`,
-          },
+          { role: "system", content: "You are a quiz generator. Create 10 multiple-choice questions about the given topic. Each question should have 4 options with exactly one correct answer. Make questions progressively harder." },
+          { role: "user", content: `Create a quiz about: ${subject}` },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "create_quiz",
-              description: "Create multiple-choice quiz questions",
-              parameters: {
-                type: "object",
-                properties: {
-                  questions: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        question: { type: "string" },
-                        options: {
-                          type: "array",
-                          items: { type: "string" },
-                        },
-                        correctIndex: { type: "number" },
-                        explanation: { type: "string" },
-                      },
-                      required: ["question", "options", "correctIndex", "explanation"],
-                      additionalProperties: false,
+        tools: [{
+          type: "function",
+          function: {
+            name: "create_quiz",
+            description: "Create multiple-choice quiz questions",
+            parameters: {
+              type: "object",
+              properties: {
+                questions: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      question: { type: "string" },
+                      options: { type: "array", items: { type: "string" } },
+                      correctIndex: { type: "number" },
+                      explanation: { type: "string" },
                     },
+                    required: ["question", "options", "correctIndex", "explanation"],
+                    additionalProperties: false,
                   },
                 },
-                required: ["questions"],
-                additionalProperties: false,
               },
+              required: ["questions"],
+              additionalProperties: false,
             },
           },
-        ],
+        }],
         tool_choice: { type: "function", function: { name: "create_quiz" } },
       }),
     });
@@ -114,16 +96,8 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
@@ -134,7 +108,7 @@ serve(async (req) => {
     const { questions } = JSON.parse(toolCall.function.arguments);
 
     return new Response(
-      JSON.stringify({ questions, topicTitle: topic.title, topicId }),
+      JSON.stringify({ questions, topicTitle: topic.title, topicId, stepIndex: stepIndex ?? null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {

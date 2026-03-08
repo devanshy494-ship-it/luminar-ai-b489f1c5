@@ -13,8 +13,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -27,35 +26,28 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { topicId } = await req.json();
+    const { topicId, stepIndex, stepTitle } = await req.json();
     if (!topicId) {
       return new Response(JSON.stringify({ error: "topicId is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get topic
-    const { data: topic, error: topicError } = await supabase
-      .from("topics")
-      .select("title")
-      .eq("id", topicId)
-      .single();
-
-    if (topicError || !topic) {
+    const { data: topic } = await supabase.from("topics").select("title").eq("id", topicId).single();
+    if (!topic) {
       return new Response(JSON.stringify({ error: "Topic not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -66,43 +58,32 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          {
-            role: "system",
-            content: "You are a flashcard generator for learning. Create 10 flashcards with a front (question/term) and back (answer/definition) for the given topic. Make them progressively harder.",
-          },
-          {
-            role: "user",
-            content: `Create flashcards for studying: "${topic.title}"`,
-          },
+          { role: "system", content: "You are a flashcard generator for learning. Create 10 flashcards with a front (question/term) and back (answer/definition) for the given topic. Make them progressively harder." },
+          { role: "user", content: `Create flashcards for studying: ${subject}` },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "create_flashcards",
-              description: "Create study flashcards",
-              parameters: {
-                type: "object",
-                properties: {
-                  flashcards: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        front: { type: "string" },
-                        back: { type: "string" },
-                      },
-                      required: ["front", "back"],
-                      additionalProperties: false,
-                    },
+        tools: [{
+          type: "function",
+          function: {
+            name: "create_flashcards",
+            description: "Create study flashcards",
+            parameters: {
+              type: "object",
+              properties: {
+                flashcards: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { front: { type: "string" }, back: { type: "string" } },
+                    required: ["front", "back"],
+                    additionalProperties: false,
                   },
                 },
-                required: ["flashcards"],
-                additionalProperties: false,
               },
+              required: ["flashcards"],
+              additionalProperties: false,
             },
           },
-        ],
+        }],
         tool_choice: { type: "function", function: { name: "create_flashcards" } },
       }),
     });
@@ -110,18 +91,8 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
@@ -131,20 +102,20 @@ serve(async (req) => {
 
     const { flashcards } = JSON.parse(toolCall.function.arguments);
 
-    // Save flashcards
     const flashcardRows = flashcards.map((fc: any) => ({
       topic_id: topicId,
       user_id: user.id,
       front: fc.front,
       back: fc.back,
       mastery_level: 0,
+      step_index: stepIndex ?? null,
     }));
 
     const { error: insertError } = await supabase.from("flashcards").insert(flashcardRows);
     if (insertError) throw insertError;
 
     return new Response(
-      JSON.stringify({ flashcards, topicTitle: topic.title }),
+      JSON.stringify({ flashcards, topicTitle: topic.title, stepIndex: stepIndex ?? null }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
