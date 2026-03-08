@@ -94,6 +94,8 @@ export default function FlashcardCreator() {
   const [totalCards, setTotalCards] = useState(0);
   const [result, setResult] = useState<{ topicId: string; title: string; cardsGenerated: number } | null>(null);
   const [error, setError] = useState('');
+  const [showYtFallback, setShowYtFallback] = useState(false);
+  const [ytManualTranscript, setYtManualTranscript] = useState('');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,7 +122,7 @@ export default function FlashcardCreator() {
     return /(?:youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)/.test(urlStr);
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (manualTranscriptOverride?: string) => {
     setError('');
     setStep('analyzing');
 
@@ -132,14 +134,27 @@ export default function FlashcardCreator() {
 
         // Check if YouTube URL — fetch transcript first
         if (isYouTubeUrl(cleanUrl)) {
+          const invokeBody: any = { url: cleanUrl };
+          if (manualTranscriptOverride) {
+            invokeBody.manualTranscript = manualTranscriptOverride;
+          }
           const { data: ytData, error: ytError } = await supabase.functions.invoke('youtube-transcript', {
-            body: { url: cleanUrl },
+            body: invokeBody,
           });
           if (ytError) throw ytError;
-          if (ytData?.error) throw new Error(ytData.error);
+          if (ytData?.error) {
+            if (ytData?.fallbackToManual && !manualTranscriptOverride) {
+              setShowYtFallback(true);
+              setError('Auto-extraction failed. Paste the transcript manually below.');
+              setStep('input');
+              return;
+            }
+            throw new Error(ytData.error);
+          }
 
           body.content = ytData.transcript;
           setExtractedContent(ytData.transcript);
+          setShowYtFallback(false);
         } else {
           body.url = cleanUrl;
         }
@@ -302,13 +317,34 @@ export default function FlashcardCreator() {
                   type="url"
                   placeholder="https://example.com/article or YouTube video URL"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => { setUrl(e.target.value); setShowYtFallback(false); }}
                   className="h-12"
                 />
-                {url && isYouTubeUrl(url) && (
+                {url && isYouTubeUrl(url) && !showYtFallback && (
                   <p className="text-sm text-accent mt-2 flex items-center gap-1">
                     <Youtube className="h-4 w-4" /> YouTube video detected — transcript will be extracted automatically
                   </p>
+                )}
+                {showYtFallback && (
+                  <div className="mt-3 p-3 rounded-xl bg-muted/50 border border-border">
+                    <p className="text-sm text-muted-foreground mb-2">
+                      💡 <strong>How to get the transcript:</strong> Open the YouTube video → click "..." below the video → "Show transcript" → copy all the text
+                    </p>
+                    <Textarea
+                      placeholder="Paste the YouTube transcript here..."
+                      value={ytManualTranscript}
+                      onChange={(e) => setYtManualTranscript(e.target.value)}
+                      rows={4}
+                      className="resize-none mb-2"
+                    />
+                    <Button
+                      onClick={() => handleAnalyze(ytManualTranscript.trim())}
+                      disabled={ytManualTranscript.trim().length < 50}
+                      size="sm"
+                    >
+                      <Check className="h-3.5 w-3.5 mr-1" /> Use This Transcript
+                    </Button>
+                  </div>
                 )}
               </div>
             )}
@@ -330,7 +366,7 @@ export default function FlashcardCreator() {
             )}
 
             <Button
-              onClick={handleAnalyze}
+              onClick={() => handleAnalyze()}
               className="w-full mt-6 h-12"
               disabled={
                 (inputMode === 'file' && !extractedContent) ||

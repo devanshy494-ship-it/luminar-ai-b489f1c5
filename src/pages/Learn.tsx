@@ -106,9 +106,13 @@ export default function Learn() {
     }
   };
 
+  const [showYtFallback, setShowYtFallback] = useState(false);
+  const [ytManualTranscript, setYtManualTranscript] = useState('');
+
   const handleUrlSource = async () => {
     if (!sourceUrl.trim()) return;
     setSourceError('');
+    setShowYtFallback(false);
     setLoadingSource(true);
     const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
 
@@ -118,11 +122,17 @@ export default function Learn() {
           body: { url: cleanUrl },
         });
         if (error) throw error;
-        if (data?.error) throw new Error(data.error);
+        if (data?.error) {
+          if (data?.fallbackToManual) {
+            setShowYtFallback(true);
+            setSourceError('Auto-extraction failed. Paste the transcript manually below.');
+            return;
+          }
+          throw new Error(data.error);
+        }
         setExtractedContent(data.transcript);
         if (!topic) setTopic(data.title || '');
       } else {
-        // Use analyze-document to fetch URL content
         const { data, error } = await supabase.functions.invoke('analyze-document', {
           body: { url: cleanUrl },
         });
@@ -132,7 +142,34 @@ export default function Learn() {
         if (!topic && data.analysis?.title) setTopic(data.analysis.title);
       }
     } catch (err: any) {
-      setSourceError(err.message || 'Failed to fetch URL');
+      if (!showYtFallback) {
+        setSourceError(err.message || 'Failed to fetch URL');
+        if (isYouTubeUrl(cleanUrl)) setShowYtFallback(true);
+      }
+    } finally {
+      setLoadingSource(false);
+    }
+  };
+
+  const handleYtManualSubmit = async () => {
+    if (ytManualTranscript.trim().length < 50) {
+      setSourceError('Please paste at least 50 characters of transcript');
+      return;
+    }
+    setLoadingSource(true);
+    setSourceError('');
+    const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
+    try {
+      const { data, error } = await supabase.functions.invoke('youtube-transcript', {
+        body: { url: cleanUrl, manualTranscript: ytManualTranscript.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setExtractedContent(data.transcript);
+      if (!topic) setTopic(data.title || '');
+      setShowYtFallback(false);
+    } catch (err: any) {
+      setSourceError(err.message || 'Failed to process transcript');
     } finally {
       setLoadingSource(false);
     }
@@ -362,17 +399,35 @@ export default function Learn() {
                           type="url"
                           placeholder="https://example.com or YouTube URL"
                           value={sourceUrl}
-                          onChange={(e) => setSourceUrl(e.target.value)}
+                          onChange={(e) => { setSourceUrl(e.target.value); setShowYtFallback(false); }}
                           className="flex-1"
                         />
                         <Button onClick={handleUrlSource} disabled={loadingSource || !sourceUrl.trim()} size="sm">
                           {loadingSource ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fetch'}
                         </Button>
                       </div>
-                      {sourceUrl && isYouTubeUrl(sourceUrl) && !extractedContent && (
+                      {sourceUrl && isYouTubeUrl(sourceUrl) && !extractedContent && !showYtFallback && (
                         <p className="text-sm text-accent mt-2 flex items-center gap-1">
                           <Youtube className="h-4 w-4" /> YouTube detected — transcript will be extracted
                         </p>
+                      )}
+                      {showYtFallback && (
+                        <div className="mt-3 p-3 rounded-xl bg-muted/50 border border-border">
+                          <p className="text-sm text-muted-foreground mb-2">
+                            💡 <strong>How to get the transcript:</strong> Open the YouTube video → click "..." below the video → "Show transcript" → copy all the text
+                          </p>
+                          <Textarea
+                            placeholder="Paste the YouTube transcript here..."
+                            value={ytManualTranscript}
+                            onChange={(e) => setYtManualTranscript(e.target.value)}
+                            rows={4}
+                            className="resize-none mb-2"
+                          />
+                          <Button onClick={handleYtManualSubmit} disabled={loadingSource || ytManualTranscript.trim().length < 50} size="sm">
+                            {loadingSource ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Check className="h-3.5 w-3.5 mr-1" />}
+                            Use This Transcript
+                          </Button>
+                        </div>
                       )}
                       {extractedContent && sourceUrl && (
                         <p className="text-sm text-success mt-2 flex items-center gap-1">
