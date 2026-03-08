@@ -256,7 +256,9 @@ export default function NotionExportDialog({
   const isSingleStep = stepIndex != null;
   const materialsCount = Object.keys(extraMaterials).length;
   const hasMaterials = isSingleStep ? !!extraMaterials[stepIndex] : materialsCount > 0;
-  const hasLesson = isSingleStep ? !!lessons[stepIndex] : false;
+  const lessonsCount = Object.keys(lessons).length;
+  const hasLessons = isSingleStep ? !!lessons[stepIndex] : lessonsCount > 0;
+  const hasLesson = hasLessons;
 
   const handleExport = async () => {
     setExporting(true);
