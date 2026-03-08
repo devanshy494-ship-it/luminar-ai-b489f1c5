@@ -275,11 +275,28 @@ export default function Flashcards() {
           </Button>
         </div>
 
-        {/* Generate more */}
-        <div className="flex justify-center mt-6">
+        {/* Actions */}
+        <div className="flex justify-center gap-3 mt-6">
           <Button variant="outline" size="sm" onClick={handleGenerateMore} disabled={generating}>
             {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
             Generate More Cards
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const content = cards.map(c => `${c.front}\t${c.back}`).join('\n');
+              const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${topicTitle || 'flashcards'}-anki.txt`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${cards.length} cards for AnkiDroid`);
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" /> Export to Anki
           </Button>
         </div>
 
