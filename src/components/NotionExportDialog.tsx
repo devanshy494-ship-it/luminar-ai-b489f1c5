@@ -361,20 +361,23 @@ export default function NotionExportDialog({
             </>
           ) : (
             <>
-              {/* Full Roadmap checkbox */}
+              {/* Lessons checkbox */}
               <label className="flex items-start gap-3 p-3 rounded-lg border border-border/50 hover:border-primary/30 transition-colors cursor-pointer">
                 <Checkbox
-                  checked={exportRoadmap}
-                  onCheckedChange={(v) => setExportRoadmap(v === true)}
+                  checked={exportLesson}
+                  onCheckedChange={(v) => setExportLesson(v === true)}
+                  disabled={!hasLessons}
                   className="mt-0.5"
                 />
                 <div className="flex-1">
                   <div className="flex items-center gap-2 font-medium text-foreground">
                     <BookOpen className="h-4 w-4 text-primary" />
-                    Roadmap
+                    Lesson Content
                   </div>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    {steps.length} steps with descriptions, progress, and status
+                    {hasLessons
+                      ? `Lessons loaded for ${lessonsCount} of ${steps.length} steps`
+                      : 'No lessons loaded — expand steps first to generate lessons'}
                   </p>
                 </div>
               </label>
