@@ -106,7 +106,38 @@ export default function Learn() {
     }
   };
 
+  const handleUrlSource = async () => {
+    if (!sourceUrl.trim()) return;
+    setSourceError('');
+    setLoadingSource(true);
+    const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
 
+    try {
+      if (isYouTubeUrl(cleanUrl)) {
+        try {
+          const videoIdMatch = cleanUrl.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+          if (videoIdMatch) {
+            const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoIdMatch[1]}`);
+            const oembedData = await oembedRes.json();
+            if (oembedData.title && !topic) setTopic(oembedData.title);
+          }
+        } catch { /* ignore title fetch errors */ }
+        setExtractedContent(`[YouTube video: ${cleanUrl}]`);
+      } else {
+        const { data, error } = await supabase.functions.invoke('analyze-document', {
+          body: { url: cleanUrl },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        setExtractedContent(`[URL content analyzed: ${cleanUrl}]`);
+        if (!topic && data.analysis?.title) setTopic(data.analysis.title);
+      }
+    } catch (err: any) {
+      setSourceError(err.message || 'Failed to fetch URL');
+    } finally {
+      setLoadingSource(false);
+    }
+  };
 
 
   const handleTextSource = () => {
