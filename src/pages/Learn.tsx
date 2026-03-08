@@ -67,6 +67,7 @@ async function extractTextFromFile(file: File): Promise<string> {
 export default function Learn() {
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
+  const [strictMode, setStrictMode] = useState(false);
   const [loadingMindmap, setLoadingMindmap] = useState(false);
   const [showSourcePanel, setShowSourcePanel] = useState(false);
   const [sourceType, setSourceType] = useState<SourceType>('file');
