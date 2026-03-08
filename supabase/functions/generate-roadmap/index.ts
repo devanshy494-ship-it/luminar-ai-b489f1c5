@@ -103,7 +103,16 @@ Make the roadmap progressive — each step should build on the previous one. Inc
                         estimatedTime: { type: "string" },
                         resources: {
                           type: "array",
-                          items: { type: "string" },
+                          items: {
+                            type: "object",
+                            properties: {
+                              name: { type: "string", description: "Display name of the resource" },
+                              url: { type: "string", description: "Real, working URL to the resource" },
+                              type: { type: "string", enum: ["video", "website", "docs", "exercise"], description: "Type of resource" },
+                            },
+                            required: ["name", "url", "type"],
+                            additionalProperties: false,
+                          },
                         },
                       },
                       required: ["title", "description", "estimatedTime"],

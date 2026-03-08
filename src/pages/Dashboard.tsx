@@ -348,6 +348,7 @@ export default function Dashboard() {
               ) : (
                 <EmptyState icon={Target} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
+              </motion.div>
             </TabsContent>
 
             {/* History Tab */}
