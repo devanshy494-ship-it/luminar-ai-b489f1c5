@@ -430,6 +430,14 @@ export default function Mindmap() {
     toast.success(`Collapsed "${(node.data as any)?._plainLabel || nodeId}"`);
   }, [setNodes, setEdges]);
 
+  if (dbLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   if (!mindmapData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
