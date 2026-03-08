@@ -352,7 +352,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                CrosshairStaCrosshairn={Ta<EmptyState icon={Crosshai<EmptyState icon={Crosshairadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
+                <EmptyState icon={Crosshair} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
               </motion.div>
             </TabsContent>
