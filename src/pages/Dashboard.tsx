@@ -203,7 +203,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
           <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
-            <Crosshairairair className="h-8 w-8 text-warning mb-3" />
+            <Crosshairairairair className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
           </button>
@@ -222,7 +222,7 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
           <div className="p-5 rounded-xl bg-card border border-border text-center">
-       Crosshairsshairget className="h-6 w-6 text-warning mx-auto mb-2" />
+    Crosshairsshairsshairget className="h-6 w-6 text-warning mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
             <p className="text-sm text-muted-foreground">Quizzes</p>
           </div>
@@ -235,7 +235,7 @@ export default function Dashboard() {
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
-                <TabsTrigger value="quizCrosshairTarget className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
+                <TabsTrigger valueCrosshairCrosshairTarget className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
                 <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
@@ -354,7 +354,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <EmptyState icon={Target} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
+                <EmptyStaCrosshairn={Target} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
               </motion.div>
             </TabsContent>
