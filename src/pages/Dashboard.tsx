@@ -222,7 +222,9 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
           <div className="p-5 rounded-xl bg-card border border-border text-center">
- <Crosshair  <p classNamclassName="h-6 w-6 text-warning mx-auto mb-2" /  <p className="text-sm text-muted-foreground">Quizzes</p>
+            <Crosshair className="h-6 w-6 text-warning mx-auto mb-2" />
+            <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
+            <p className="text-sm text-muted-foreground">Quizzes</p>
           </div>
         </motion.div>
 
