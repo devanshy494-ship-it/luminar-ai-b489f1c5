@@ -7,6 +7,10 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Learn from "./pages/Learn";
+import Roadmap from "./pages/Roadmap";
+import Flashcards from "./pages/Flashcards";
+import Quiz from "./pages/Quiz";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +33,10 @@ const AppRoutes = () => (
     <Route path="/" element={<Landing />} />
     <Route path="/auth" element={<Auth />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+    <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
+    <Route path="/roadmap/:topicId" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
+    <Route path="/flashcards/:topicId" element={<ProtectedRoute><Flashcards /></ProtectedRoute>} />
+    <Route path="/quiz/:topicId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
