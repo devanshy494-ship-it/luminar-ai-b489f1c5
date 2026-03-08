@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(true);
   const [loadingFlashcards, setLoadingFlashcards] = useState(true);
   const [loadingQuizzes, setLoadingQuizzes] = useState(true);
+  const [isFirstVisit, setIsFirstVisit] = useState(true);
 
   const fetchAll = async () => {
     if (!user) return;
