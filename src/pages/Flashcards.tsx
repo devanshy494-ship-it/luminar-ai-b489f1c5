@@ -62,7 +62,7 @@ export default function Flashcards() {
         if (grp) setGroupName(grp.name);
       }
 
-      const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).single();
+      const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).maybeSingle();
       if (roadmap?.steps) {
         const steps = roadmap.steps as any[];
         const titles: Record<number, string> = {};
