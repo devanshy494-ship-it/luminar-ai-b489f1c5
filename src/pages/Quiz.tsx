@@ -32,6 +32,8 @@ export default function Quiz() {
   const [finished, setFinished] = useState(false);
   const [wrongQuestions, setWrongQuestions] = useState<Question[]>([]);
 
+  const isCustomQuiz = topicId === 'custom';
+
   if (questions.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -62,7 +64,7 @@ export default function Quiz() {
       setShowResult(false);
     } else {
       setFinished(true);
-      if (user && topicId && !retryMode) {
+      if (user && topicId && !retryMode && !isCustomQuiz) {
         try {
           await supabase.from('quiz_results').insert({
             topic_id: topicId,
@@ -161,8 +163,8 @@ export default function Quiz() {
                   Retry Wrong Questions ({wrongQuestions.length})
                 </Button>
               )}
-              <Button variant={wrongQuestions.length > 0 ? 'outline' : 'glow'} onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
-              <Button variant="outline" onClick={() => navigate('/dashboard')}>Dashboard</Button>
+              {!isCustomQuiz && <Button variant={wrongQuestions.length > 0 ? 'outline' : 'glow'} onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>}
+              <Button variant={isCustomQuiz && wrongQuestions.length === 0 ? 'glow' : 'outline'} onClick={() => navigate('/dashboard')}>Dashboard</Button>
             </div>
           </motion.div>
         </main>
@@ -183,7 +185,7 @@ export default function Quiz() {
           <div className="flex items-center gap-3">
             {retryMode && <span className="text-xs px-2 py-1 rounded-md bg-warning/10 text-warning font-medium">Retry Mode</span>}
             {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block">{stepTitle}</span>}
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/roadmap/${topicId}`)}>
+            <Button variant="ghost" size="sm" onClick={() => navigate(isCustomQuiz ? '/dashboard' : `/roadmap/${topicId}`)}>
               <ArrowLeft className="h-4 w-4 mr-2" /> Exit Quiz
             </Button>
           </div>
