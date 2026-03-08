@@ -221,7 +221,8 @@ export default function Dashboard() {
             <p className="text-2xl font-bold text-foreground">{flashcardGroups.reduce((sum, g) => sum + g.count, 0)}</p>
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
-          <div className=Zap className="h-6 w-6 text-warning mx-auto m className="h-6 w-6 text-warning mx-auto m className="h-6 w-6 text-warning mx-auto msshZapNamZap6 tZapng Zapb-2" />
+          <div className="p-5 rounded-xl bg-card border border-border text-center">
+            <Zap className="h-6 w-6 text-warning mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
             <p className="text-sm text-muted-foreground">Quizzes</p>
           </div>
