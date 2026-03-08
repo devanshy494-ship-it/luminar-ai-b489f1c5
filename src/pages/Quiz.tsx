@@ -64,7 +64,7 @@ export default function Quiz() {
       setShowResult(false);
     } else {
       setFinished(true);
-      if (user && topicId && !retryMode) {
+      if (user && topicId && !retryMode && !isCustomQuiz) {
         try {
           await supabase.from('quiz_results').insert({
             topic_id: topicId,
