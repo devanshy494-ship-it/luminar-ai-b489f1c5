@@ -28,6 +28,7 @@ export default function Flashcards() {
   const [generating, setGenerating] = useState(false);
   const [topicTitle, setTopicTitle] = useState('');
   const [stepTitle, setStepTitle] = useState('');
+  const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
 
   useEffect(() => {
     async function fetchCards() {
@@ -46,11 +47,14 @@ export default function Flashcards() {
       if (cardsRes.data) setCards(cardsRes.data);
       if (topicRes.data) setTopicTitle(topicRes.data.title);
 
-      // Get step title if filtering by step
-      if (stepFilter !== null) {
-        const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).single();
-        if (roadmap?.steps) {
-          const steps = roadmap.steps as any[];
+      // Get all step titles from roadmap
+      const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).single();
+      if (roadmap?.steps) {
+        const steps = roadmap.steps as any[];
+        const titles: Record<number, string> = {};
+        steps.forEach((s: any, idx: number) => { titles[idx] = s.title; });
+        setStepTitles(titles);
+        if (stepFilter !== null) {
           const idx = parseInt(stepFilter);
           if (steps[idx]) setStepTitle(steps[idx].title);
         }
@@ -72,7 +76,6 @@ export default function Flashcards() {
       const { data, error } = await supabase.functions.invoke('generate-flashcards', { body });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
-      // Re-fetch cards
       let query = supabase.from('flashcards').select('*').eq('topic_id', topicId!).order('created_at');
       if (stepFilter !== null) query = query.eq('step_index', parseInt(stepFilter));
       const { data: newCards } = await query;
@@ -107,6 +110,8 @@ export default function Flashcards() {
     );
   }
 
+  const isAllCards = stepFilter === null;
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
@@ -127,12 +132,27 @@ export default function Flashcards() {
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">{topicTitle}</h1>
-          <p className="text-muted-foreground">Card {currentIndex + 1} of {cards.length}</p>
+          <p className="text-muted-foreground">
+            {isAllCards ? 'All Flashcards' : stepTitle}{' · '}Card {currentIndex + 1} of {cards.length}
+          </p>
         </motion.div>
 
         {/* Card */}
         <div className="flex justify-center mb-8">
-          <div className="w-full max-w-lg cursor-pointer" onClick={() => setFlipped(!flipped)} style={{ perspective: '1000px' }}>
+          <div className="w-full max-w-lg cursor-pointer relative" onClick={() => setFlipped(!flipped)} style={{ perspective: '1000px' }}>
+            {/* Step badge - top right */}
+            {isAllCards && currentCard.step_index !== null && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/roadmap/${topicId}`);
+                }}
+                className="absolute top-3 right-3 z-10 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+                title={`Step ${currentCard.step_index + 1}: ${stepTitles[currentCard.step_index] || ''}`}
+              >
+                Step {currentCard.step_index + 1}
+              </button>
+            )}
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${currentIndex}-${flipped}`}
@@ -175,11 +195,12 @@ export default function Flashcards() {
 
         {/* Progress dots */}
         <div className="flex justify-center gap-1.5 mt-8 flex-wrap">
-          {cards.map((_, i) => (
+          {cards.map((card, i) => (
             <button
               key={i}
               onClick={() => { setFlipped(false); setCurrentIndex(i); }}
               className={`h-2 rounded-full transition-all ${i === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/30'}`}
+              title={isAllCards && card.step_index !== null ? `Step ${card.step_index + 1}` : undefined}
             />
           ))}
         </div>

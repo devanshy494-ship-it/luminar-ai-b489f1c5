@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,16 +48,20 @@ export default function Roadmap() {
   const [deepDiveStep, setDeepDiveStep] = useState<number | null>(null);
   const [deepDiveQuery, setDeepDiveQuery] = useState('');
   const [loadingDeepDive, setLoadingDeepDive] = useState(false);
+  const [generatingOverallQuiz, setGeneratingOverallQuiz] = useState(false);
+  const [flashcardCount, setFlashcardCount] = useState(0);
 
   useEffect(() => {
     async function fetchData() {
       if (!topicId || !user) return;
-      const [topicRes, roadmapRes] = await Promise.all([
+      const [topicRes, roadmapRes, flashcardRes] = await Promise.all([
         supabase.from('topics').select('*').eq('id', topicId).single(),
         supabase.from('roadmaps').select('*').eq('topic_id', topicId).single(),
+        supabase.from('flashcards').select('id', { count: 'exact', head: true }).eq('topic_id', topicId),
       ]);
       if (topicRes.data) setTopic(topicRes.data);
       if (roadmapRes.data) setRoadmap(roadmapRes.data);
+      setFlashcardCount(flashcardRes.count || 0);
       setLoading(false);
     }
     fetchData();
@@ -110,6 +114,7 @@ export default function Roadmap() {
       });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
+      setFlashcardCount((c) => c + (data.flashcards?.length || 0));
       toast.success(`Flashcards generated for "${step.title}"!`);
       navigate(`/flashcards/${topicId}?step=${stepIndex}`);
     } catch (e: any) {
@@ -141,21 +146,43 @@ export default function Roadmap() {
     }
   };
 
+  const handleOverallQuiz = async () => {
+    if (!topic) return;
+    setGeneratingOverallQuiz(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-quiz', {
+        body: { topicId },
+      });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+      toast.success('Overall quiz generated!');
+      navigate(`/quiz/${topicId}`, {
+        state: { questions: data.questions, topicTitle: data.topicTitle },
+      });
+    } catch (e: any) {
+      toast.error(e?.message || 'Failed to generate quiz');
+    } finally {
+      setGeneratingOverallQuiz(false);
+    }
+  };
+
   const handleDeepDive = async (stepIndex: number) => {
     if (!deepDiveQuery.trim() || !topic || !roadmap) return;
     setLoadingDeepDive(true);
     try {
       const step = roadmap.steps[stepIndex];
+      // Pass existing headings so AI doesn't repeat content
+      const existingHeadings = lessons[stepIndex]?.sections.map((s) => s.heading) || [];
       const { data, error } = await supabase.functions.invoke('generate-lesson', {
         body: {
           topicTitle: topic.title,
           stepTitle: `${step.title} — Deep Dive: ${deepDiveQuery.trim()}`,
-          stepDescription: `The learner wants to explore "${deepDiveQuery.trim()}" in more depth within the context of "${step.title}" (part of "${topic.title}").`,
+          stepDescription: `The learner wants to explore "${deepDiveQuery.trim()}" in more depth within the context of "${step.title}" (part of "${topic.title}"). IMPORTANT: Do NOT repeat or cover any of these already-covered topics: ${existingHeadings.join(', ')}. Only provide NEW content about "${deepDiveQuery.trim()}".`,
         },
       });
       if (error) throw error;
       if (data?.error) { toast.error(data.error); return; }
-      // Append deep dive as additional lesson content
+      // Replace deep dive content — only show the deep dive result, not append to original
       setLessons((prev) => {
         const existing = prev[stepIndex];
         if (!existing) return { ...prev, [stepIndex]: data };
@@ -352,6 +379,65 @@ export default function Roadmap() {
                 </AnimatePresence>
               </motion.div>
             ))}
+          </div>
+
+          {/* Bottom sections: Overall Quiz & All Flashcards */}
+          <div className="mt-12 space-y-4">
+            {/* Overall Quiz */}
+            <motion.div
+              className="rounded-xl border border-border bg-card p-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: roadmap.steps.length * 0.05 }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Target className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold font-serif text-lg text-foreground">Overall Quiz</h3>
+                    <p className="text-sm text-muted-foreground">Test your knowledge across all steps</p>
+                  </div>
+                </div>
+                <Button onClick={handleOverallQuiz} disabled={generatingOverallQuiz}>
+                  {generatingOverallQuiz ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
+                  Take Quiz
+                </Button>
+              </div>
+            </motion.div>
+
+            {/* All Flashcards */}
+            <motion.div
+              className="rounded-xl border border-border bg-card p-6"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: roadmap.steps.length * 0.05 + 0.05 }}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Layers className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold font-serif text-lg text-foreground">All Flashcards</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {flashcardCount > 0
+                        ? `${flashcardCount} cards compiled from all steps`
+                        : 'Generate flashcards from any step above first'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/flashcards/${topicId}`)}
+                  disabled={flashcardCount === 0}
+                >
+                  <Layers className="h-4 w-4 mr-2" />
+                  View All Cards
+                </Button>
+              </div>
+            </motion.div>
           </div>
         </motion.div>
       </main>
