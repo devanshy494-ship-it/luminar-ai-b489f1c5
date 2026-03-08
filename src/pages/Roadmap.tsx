@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, Target, Loader2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Clock, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,11 @@ interface Step {
   resources?: string[];
   completed: boolean;
   order: number;
+}
+
+interface LessonData {
+  sections: { heading: string; content: string }[];
+  keyTakeaways: string[];
 }
 
 interface RoadmapData {
@@ -37,6 +42,9 @@ export default function Roadmap() {
   const [loading, setLoading] = useState(true);
   const [generatingFlashcards, setGeneratingFlashcards] = useState(false);
   const [generatingQuiz, setGeneratingQuiz] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
+  const [lessons, setLessons] = useState<Record<number, LessonData>>({});
+  const [loadingLesson, setLoadingLesson] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -54,7 +62,8 @@ export default function Roadmap() {
     fetchData();
   }, [topicId, user]);
 
-  const toggleStep = async (index: number) => {
+  const toggleStep = async (index: number, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!roadmap) return;
     const newSteps = [...roadmap.steps];
     newSteps[index].completed = !newSteps[index].completed;
@@ -67,6 +76,41 @@ export default function Roadmap() {
       .from('roadmaps')
       .update({ steps: newSteps, progress })
       .eq('id', roadmap.id);
+  };
+
+  const handleExpandStep = async (index: number) => {
+    if (expandedStep === index) {
+      setExpandedStep(null);
+      return;
+    }
+
+    setExpandedStep(index);
+
+    // Generate lesson if not already loaded
+    if (!lessons[index] && roadmap && topic) {
+      setLoadingLesson(index);
+      try {
+        const step = roadmap.steps[index];
+        const { data, error } = await supabase.functions.invoke('generate-lesson', {
+          body: {
+            topicTitle: topic.title,
+            stepTitle: step.title,
+            stepDescription: step.description,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) {
+          toast.error(data.error);
+          return;
+        }
+        setLessons((prev) => ({ ...prev, [index]: data }));
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to generate lesson');
+        setExpandedStep(null);
+      } finally {
+        setLoadingLesson(null);
+      }
+    }
   };
 
   const handleGenerateFlashcards = async () => {
@@ -141,7 +185,7 @@ export default function Roadmap() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{topic.title}</h1>
-          <p className="text-muted-foreground mb-6">Your personalized learning roadmap</p>
+          <p className="text-muted-foreground mb-6">Click on any step to study the lesson</p>
 
           {/* Progress Bar */}
           <div className="mb-8">
@@ -184,7 +228,7 @@ export default function Roadmap() {
             {roadmap.steps.map((step, i) => (
               <motion.div
                 key={i}
-                className={`p-6 rounded-xl border transition-all cursor-pointer ${
+                className={`rounded-xl border transition-all ${
                   step.completed
                     ? 'bg-primary/5 border-primary/20'
                     : 'bg-card border-border hover:border-primary/20'
@@ -192,37 +236,117 @@ export default function Roadmap() {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: i * 0.05 }}
-                onClick={() => toggleStep(i)}
               >
-                <div className="flex items-start gap-4">
-                  <div className="mt-0.5">
-                    {step.completed ? (
-                      <CheckCircle2 className="h-6 w-6 text-primary" />
-                    ) : (
-                      <Circle className="h-6 w-6 text-muted-foreground" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className={`font-semibold font-serif text-lg ${step.completed ? 'text-primary' : 'text-foreground'}`}>
-                        Step {i + 1}: {step.title}
-                      </h3>
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> {step.estimatedTime}
-                      </span>
+                {/* Step Header */}
+                <div
+                  className="p-6 cursor-pointer"
+                  onClick={() => handleExpandStep(i)}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="mt-0.5" onClick={(e) => toggleStep(i, e)}>
+                      {step.completed ? (
+                        <CheckCircle2 className="h-6 w-6 text-primary" />
+                      ) : (
+                        <Circle className="h-6 w-6 text-muted-foreground hover:text-primary transition-colors" />
+                      )}
                     </div>
-                    <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
-                    {step.resources && step.resources.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {step.resources.map((r, ri) => (
-                          <span key={ri} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
-                            {r}
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className={`font-semibold font-serif text-lg ${step.completed ? 'text-primary' : 'text-foreground'}`}>
+                          Step {i + 1}: {step.title}
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground flex items-center gap-1">
+                            <Clock className="h-3 w-3" /> {step.estimatedTime}
                           </span>
-                        ))}
+                          {expandedStep === i ? (
+                            <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                          )}
+                        </div>
                       </div>
-                    )}
+                      <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
+                      {step.resources && step.resources.length > 0 && (
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {step.resources.map((r, ri) => (
+                            <span key={ri} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+
+                {/* Expanded Lesson Content */}
+                <AnimatePresence>
+                  {expandedStep === i && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-6 pb-6 border-t border-border/50 pt-6 ml-10">
+                        {loadingLesson === i ? (
+                          <div className="flex flex-col items-center py-8">
+                            <Loader2 className="h-8 w-8 text-primary animate-spin mb-3" />
+                            <p className="text-muted-foreground">Generating lesson content...</p>
+                          </div>
+                        ) : lessons[i] ? (
+                          <div className="space-y-6">
+                            {/* Lesson Sections */}
+                            {lessons[i].sections.map((section, si) => (
+                              <div key={si}>
+                                <h4 className="text-base font-bold text-foreground mb-2 flex items-center gap-2">
+                                  <GraduationCap className="h-4 w-4 text-primary" />
+                                  {section.heading}
+                                </h4>
+                                <div className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
+                                  {section.content}
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* Key Takeaways */}
+                            {lessons[i].keyTakeaways && lessons[i].keyTakeaways.length > 0 && (
+                              <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+                                <h4 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+                                  <Lightbulb className="h-4 w-4 text-primary" />
+                                  Key Takeaways
+                                </h4>
+                                <ul className="space-y-2">
+                                  {lessons[i].keyTakeaways.map((takeaway, ti) => (
+                                    <li key={ti} className="text-sm text-foreground/80 flex items-start gap-2">
+                                      <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                      {takeaway}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Mark as complete prompt */}
+                            {!step.completed && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => toggleStep(i, e)}
+                                className="mt-2"
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Mark as Complete
+                              </Button>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             ))}
           </div>
