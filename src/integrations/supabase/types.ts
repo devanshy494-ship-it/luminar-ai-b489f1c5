@@ -14,11 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      flashcard_groups: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          topic_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          topic_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          topic_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flashcard_groups_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcards: {
         Row: {
           back: string
           created_at: string
           front: string
+          group_id: string | null
           id: string
           mastery_level: number
           step_index: number | null
@@ -29,6 +62,7 @@ export type Database = {
           back: string
           created_at?: string
           front: string
+          group_id?: string | null
           id?: string
           mastery_level?: number
           step_index?: number | null
@@ -39,6 +73,7 @@ export type Database = {
           back?: string
           created_at?: string
           front?: string
+          group_id?: string | null
           id?: string
           mastery_level?: number
           step_index?: number | null
@@ -46,6 +81,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "flashcards_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "flashcards_topic_id_fkey"
             columns: ["topic_id"]
