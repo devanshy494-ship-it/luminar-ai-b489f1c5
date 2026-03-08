@@ -12,6 +12,7 @@ import Learn from "./pages/Learn";
 import Roadmap from "./pages/Roadmap";
 import Flashcards from "./pages/Flashcards";
 import Quiz from "./pages/Quiz";
+import Mindmap from "./pages/Mindmap";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
