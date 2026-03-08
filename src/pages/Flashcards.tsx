@@ -101,11 +101,16 @@ export default function Flashcards() {
     );
   }
 
+  // Check if there's a roadmap for this topic
+  const hasRoadmap = Object.keys(stepTitles).length > 0;
+
   if (cards.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
         <p className="text-muted-foreground">No flashcards found for this topic</p>
-        <Button onClick={() => navigate(`/roadmap/${topicId}`)}>Back to Roadmap</Button>
+        <Button onClick={() => navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard')}>
+          {hasRoadmap ? 'Back to Roadmap' : 'Back to Dashboard'}
+        </Button>
       </div>
     );
   }
@@ -122,8 +127,8 @@ export default function Flashcards() {
           </div>
           <div className="flex items-center gap-2">
             {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block px-2 py-1 rounded-md bg-muted">{stepTitle}</span>}
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/roadmap/${topicId}`)}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+            <Button variant="ghost" size="sm" onClick={() => navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard')}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> {hasRoadmap ? 'Back' : 'Dashboard'}
             </Button>
           </div>
         </div>
