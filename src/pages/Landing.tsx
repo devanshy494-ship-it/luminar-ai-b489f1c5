@@ -66,14 +66,9 @@ export default function Landing() {
                 Dashboard <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <>
-                <Button variant="ghost" onClick={() => navigate('/auth')} className="font-medium">
-                  Sign In
-                </Button>
-                <Button variant="glow" onClick={() => navigate('/auth?mode=signup')}>
-                  Get Started
-                </Button>
-              </>
+              <Button variant="glow" onClick={() => navigate('/auth')}>
+                Get Started <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             )}
           </div>
         </div>
