@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, Plus, Flame, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, XCircle, RotateCcw } from 'lucide-react';
+import { BookOpen, Plus, Flame, ArrowRight, LogOut, Brain, Sparkles, Target, Map, Trash2, RotateCcw, History, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import FlashcardCreator from '@/components/FlashcardCreator';
 
 interface Topic {
   id: string;
@@ -190,7 +191,7 @@ export default function Dashboard() {
           }} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
             <Sparkles className="h-8 w-8 text-accent mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
-            <p className="text-sm text-muted-foreground">Study with AI-generated cards</p>
+            <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
           <button onClick={() => {
             const tabEl = document.querySelector('[data-state][value="quizzes"]');
@@ -230,6 +231,7 @@ export default function Dashboard() {
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
                 <TabsTrigger value="quizzes"><Target className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
+                <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
                 <Plus className="h-4 w-4 mr-2" /> New Topic
@@ -273,33 +275,9 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            {/* Flashcards Tab */}
+            {/* Flashcards Tab - Now a creator */}
             <TabsContent value="flashcards">
-              {loadingFlashcards ? (
-                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
-              ) : flashcardGroups.length > 0 ? (
-                <div className="grid gap-3">
-                  {flashcardGroups.map((group, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <button
-                        onClick={() => navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`)}
-                        className="flex-1 flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
-                      >
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-foreground truncate">{group.topic_title}</h3>
-                          <p className="text-sm text-muted-foreground">{group.step_title} · {group.count} cards</p>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
-                      </button>
-                      <button onClick={() => handleDeleteFlashcards(group.topic_id, group.step_index)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState icon={Sparkles} title="No flashcards yet" desc="Generate flashcards from your roadmap steps" onAction={() => navigate('/learn')} actionText="Start Learning" />
-              )}
+              <FlashcardCreator />
             </TabsContent>
 
             {/* Quizzes Tab */}
@@ -350,6 +328,95 @@ export default function Dashboard() {
               ) : (
                 <EmptyState icon={Target} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
+            </TabsContent>
+
+            {/* History Tab */}
+            <TabsContent value="history">
+              <div className="space-y-8">
+                {/* Flashcard History */}
+                <div>
+                  <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-accent" /> Flashcard Sets
+                  </h3>
+                  {loadingFlashcards ? (
+                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                  ) : flashcardGroups.length > 0 ? (
+                    <div className="grid gap-3">
+                      {flashcardGroups.map((group, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <button
+                            onClick={() => navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`)}
+                            className="flex-1 flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
+                          >
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-foreground truncate">{group.topic_title}</h3>
+                              <p className="text-sm text-muted-foreground">{group.step_title} · {group.count} cards</p>
+                            </div>
+                            <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+                          </button>
+                          <button onClick={() => handleDeleteFlashcards(group.topic_id, group.step_index)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8 bg-card rounded-xl border border-border">No flashcard sets yet</p>
+                  )}
+                </div>
+
+                {/* Quiz History */}
+                <div>
+                  <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                    <Target className="h-5 w-5 text-success" /> Quiz Results
+                  </h3>
+                  {loadingQuizzes ? (
+                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                  ) : Object.keys(quizByTopic).length > 0 ? (
+                    <div className="space-y-6">
+                      {Object.entries(quizByTopic).map(([topicId, { title, quizzes }]) => (
+                        <div key={topicId}>
+                          <h4 className="font-semibold text-foreground mb-2">{title}</h4>
+                          <div className="grid gap-2 ml-2">
+                            {quizzes.map((quiz) => (
+                              <div key={quiz.id} className="flex items-center gap-2">
+                                <div className="flex-1 p-4 rounded-xl bg-card border border-border">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-medium text-foreground">
+                                        Score: {quiz.score}/{quiz.total} ({Math.round((quiz.score / quiz.total) * 100)}%)
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {quiz.step_index !== null ? `Step ${quiz.step_index + 1}` : 'Full topic'} · {new Date(quiz.completed_at).toLocaleDateString()}
+                                      </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {quiz.wrong_questions && quiz.wrong_questions.length > 0 && (
+                                        <button
+                                          onClick={() => handleRetryWrong(quiz)}
+                                          className="text-xs px-2.5 py-1.5 rounded-md bg-warning/10 text-warning hover:bg-warning/20 transition-colors flex items-center gap-1 font-medium"
+                                        >
+                                          <RotateCcw className="h-3 w-3" /> Retry {quiz.wrong_questions.length}
+                                        </button>
+                                      )}
+                                      <div className={`h-2 w-2 rounded-full ${quiz.score / quiz.total >= 0.7 ? 'bg-success' : quiz.score / quiz.total >= 0.4 ? 'bg-warning' : 'bg-destructive'}`} />
+                                    </div>
+                                  </div>
+                                </div>
+                                <button onClick={() => handleDeleteQuiz(quiz.id)} className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-center py-8 bg-card rounded-xl border border-border">No quiz results yet</p>
+                  )}
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         </motion.div>
