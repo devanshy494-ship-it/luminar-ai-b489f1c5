@@ -33,6 +33,11 @@ interface Step {
   order: number;
 }
 
+interface LessonData {
+  sections: { heading: string; content: string }[];
+  keyTakeaways: string[];
+}
+
 interface NotionExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -40,7 +45,8 @@ interface NotionExportDialogProps {
   steps: Step[];
   progress: number;
   extraMaterials: Record<number, ExtraMaterials>;
-  onGenerateAllMaterials?: () => Promise<void>;
+  lessons: Record<number, LessonData>;
+  stepIndex?: number | null; // null = full export, number = single step
 }
 
 function generateRoadmapMarkdown(topicTitle: string, steps: Step[], progress: number): string {
