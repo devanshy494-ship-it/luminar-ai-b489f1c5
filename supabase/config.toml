@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.generate-document-flashcards]
 verify_jwt = false
+
+[functions.youtube-transcript]
+verify_jwt = false
