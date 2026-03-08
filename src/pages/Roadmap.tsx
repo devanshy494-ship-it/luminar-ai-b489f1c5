@@ -70,6 +70,9 @@ export default function Roadmap() {
   const [loadingDeepDive, setLoadingDeepDive] = useState(false);
   const [generatingOverallQuiz, setGeneratingOverallQuiz] = useState(false);
   const [flashcardCount, setFlashcardCount] = useState(0);
+  const [extraMaterials, setExtraMaterials] = useState<Record<number, ExtraMaterials>>({});
+  const [loadingExtraMaterials, setLoadingExtraMaterials] = useState<number | null>(null);
+  const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
