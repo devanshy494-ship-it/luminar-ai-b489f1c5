@@ -6,8 +6,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  quickSignIn: (fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -34,21 +33,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
+  const quickSignIn = async (fullName: string) => {
+    // Generate a unique email and password for this user
+    const id = crypto.randomUUID().slice(0, 8);
+    const email = `${id}@luminar.local`;
+    const password = crypto.randomUUID();
+
+    // Try sign up first
+    const { error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: { full_name: fullName },
-        emailRedirectTo: window.location.origin,
       },
     });
-    return { error: error as Error | null };
-  };
 
-  const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error as Error | null };
+    if (signUpError) {
+      return { error: signUpError as Error };
+    }
+
+    return { error: null };
   };
 
   const signOut = async () => {
@@ -56,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, quickSignIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );
