@@ -167,18 +167,21 @@ export type Database = {
       topics: {
         Row: {
           created_at: string
+          generation_context: Json | null
           id: string
           title: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          generation_context?: Json | null
           id?: string
           title: string
           user_id: string
         }
         Update: {
           created_at?: string
+          generation_context?: Json | null
           id?: string
           title?: string
           user_id?: string
