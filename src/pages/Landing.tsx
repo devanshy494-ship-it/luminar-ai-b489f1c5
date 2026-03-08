@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { BookOpen, Brain, Zap, ArrowRight, Sparkles, Target, BarChart3 } from 'lucide-react';
+import { BookOpen, Brain, Zap, ArrowRight, Sparkles, Target, BarChart3, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
