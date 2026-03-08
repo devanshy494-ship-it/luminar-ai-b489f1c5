@@ -285,15 +285,30 @@ export default function Learn() {
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
                 className="text-base py-6 pl-14 focus:border-primary/50 focus:ring-primary/30"
-                disabled={loading}
+                disabled={loading || loadingMindmap}
                 maxLength={200}
               />
             </div>
-            <Button type="submit" size="lg" variant="glow" className="px-6 py-6" disabled={loading}>
+            <Button type="submit" size="lg" variant="glow" className="px-6 py-6" disabled={loading || loadingMindmap} title="Generate Roadmap">
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <Sparkles className="h-5 w-5" />
+              )}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              variant="outline"
+              className="px-6 py-6"
+              disabled={loading || loadingMindmap || !topic.trim()}
+              onClick={() => handleGenerateMindmap(topic)}
+              title="Generate Mindmap"
+            >
+              {loadingMindmap ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <GitBranch className="h-5 w-5" />
               )}
             </Button>
           </form>
