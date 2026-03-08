@@ -354,7 +354,7 @@ export default function Dashboard() {
                   ))}
                 </div>
               ) : (
-                <EmptyState icon={Crosshair} title="Zaps yet" desc="TaZap from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
+                <EmptyState icon={Zap} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
               </motion.div>
             </TabsContent>
