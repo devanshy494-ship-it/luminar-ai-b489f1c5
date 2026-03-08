@@ -174,7 +174,7 @@
   /* Aurora animated background */
   .aurora-bg {
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
   }
 
   .aurora-bg::before {
