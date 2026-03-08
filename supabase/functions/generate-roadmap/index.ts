@@ -132,7 +132,13 @@ serve(async (req) => {
     const isStrict = hasSource && strictMode === true;
 
     // ── Phase 1: AI generates roadmap structure with search queries ──
-    const systemPrompt = `You are an expert learning roadmap generator. Given a topic${hasSource ? " and source material" : ""}, create a comprehensive learning roadmap with 8-12 steps from beginner to advanced.
+    const strictInstruction = isStrict
+      ? `\n\nCRITICAL: You are in STRICT MODE. The roadmap MUST be based EXCLUSIVELY on the provided source material. Do NOT add any topics, concepts, or steps that are not covered in the source material. Every step must directly reference or derive from the content provided. If the source material doesn't cover enough for 8 steps, create fewer steps (minimum 4) but NEVER invent content not in the source.`
+      : hasSource
+        ? `\n\nIMPORTANT: Use the provided source material to create a highly relevant roadmap aligned with the material. You may supplement with additional knowledge to fill gaps and ensure comprehensive coverage.`
+        : "";
+
+    const systemPrompt = `You are an expert learning roadmap generator. Given a topic${hasSource ? " and source material" : ""}, create a comprehensive learning roadmap with ${isStrict ? "4-12" : "8-12"} steps from beginner to advanced.
 
 Each step must have:
 - A clear, specific title
@@ -146,7 +152,7 @@ For suggestedResources:
 - Types: "website", "docs", "exercise"
 - Do NOT include video resources here — videos will be found via live YouTube search
 
-Make the roadmap progressive — each step builds on the previous one.${hasSource ? "\n\nIMPORTANT: Use the provided source material to create a highly relevant roadmap aligned with the material." : ""}`;
+Make the roadmap progressive — each step builds on the previous one.${strictInstruction}`;
 
     const userContent = hasSource
       ? `Create a learning roadmap for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`
