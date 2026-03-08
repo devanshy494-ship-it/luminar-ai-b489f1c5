@@ -106,66 +106,8 @@ export default function Learn() {
     }
   };
 
-  const [showYtFallback, setShowYtFallback] = useState(false);
-  const [ytManualTranscript, setYtManualTranscript] = useState('');
 
-  const handleUrlSource = async () => {
-    if (!sourceUrl.trim()) return;
-    setSourceError('');
-    setLoadingSource(true);
-    const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
 
-    try {
-      if (isYouTubeUrl(cleanUrl)) {
-        // For YouTube URLs, just fetch title via oEmbed for display; actual flashcard gen uses youtube-flashcards function
-        try {
-          const videoIdMatch = cleanUrl.match(/(?:youtube\.com\/watch\?.*v=|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
-          if (videoIdMatch) {
-            const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoIdMatch[1]}`);
-            const oembedData = await oembedRes.json();
-            if (oembedData.title && !topic) setTopic(oembedData.title);
-          }
-        } catch { /* ignore title fetch errors */ }
-        setExtractedContent(`[YouTube video: ${cleanUrl}]`);
-      } else {
-        const { data, error } = await supabase.functions.invoke('analyze-document', {
-          body: { url: cleanUrl },
-        });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        setExtractedContent(`[URL content analyzed: ${cleanUrl}]`);
-        if (!topic && data.analysis?.title) setTopic(data.analysis.title);
-      }
-    } catch (err: any) {
-      setSourceError(err.message || 'Failed to fetch URL');
-    } finally {
-      setLoadingSource(false);
-    }
-  };
-
-  const handleYtManualSubmit = async () => {
-    if (ytManualTranscript.trim().length < 50) {
-      setSourceError('Please paste at least 50 characters of transcript');
-      return;
-    }
-    setLoadingSource(true);
-    setSourceError('');
-    const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
-    try {
-      const { data, error } = await supabase.functions.invoke('youtube-transcript', {
-        body: { url: cleanUrl, manualTranscript: ytManualTranscript.trim() },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setExtractedContent(data.transcript);
-      if (!topic) setTopic(data.title || '');
-      setShowYtFallback(false);
-    } catch (err: any) {
-      setSourceError(err.message || 'Failed to process transcript');
-    } finally {
-      setLoadingSource(false);
-    }
-  };
 
   const handleTextSource = () => {
     if (sourceText.trim().length < 50) {
