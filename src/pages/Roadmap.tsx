@@ -313,7 +313,7 @@ export default function Roadmap() {
               <Layers className="h-4 w-4 mr-2" />
               View Flashcards {flashcardCount > 0 && `(${flashcardCount})`}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowExportDialog(true)}>
+            <Button variant="outline" size="sm" onClick={() => { setExportStepIndex(null); setShowExportDialog(true); }}>
               <Download className="h-4 w-4 mr-2" />
               Export for Notion
             </Button>
