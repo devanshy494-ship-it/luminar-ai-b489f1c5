@@ -373,6 +373,34 @@ export default function Mindmap() {
     }
   }, [mindmapData, setNodes, setEdges]);
 
+  const handleCollapseNode = useCallback((node: Node) => {
+    const nodeId = node.id;
+    // Find all descendant node IDs recursively
+    const getDescendants = (parentId: string, edgeList: Edge[]): Set<string> => {
+      const children = edgeList.filter(e => e.source === parentId).map(e => e.target);
+      const all = new Set<string>(children);
+      children.forEach(childId => {
+        getDescendants(childId, edgeList).forEach(id => all.add(id));
+      });
+      return all;
+    };
+
+    setEdges(prev => {
+      const descendants = getDescendants(nodeId, prev);
+      setNodes(prevNodes => prevNodes.filter(n => !descendants.has(n.id)));
+      return prev.filter(e => !descendants.has(e.target));
+    });
+
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      next.delete(nodeId);
+      return next;
+    });
+
+    setSelectedNode(null);
+    toast.success(`Collapsed "${(node.data as any)?._plainLabel || nodeId}"`);
+  }, [setNodes, setEdges]);
+
   if (!mindmapData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -382,6 +410,7 @@ export default function Mindmap() {
     );
   }
 
+  const isExpanded = selectedNode ? expandedNodes.has(selectedNode.id) : false;
   const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
 
   return (
