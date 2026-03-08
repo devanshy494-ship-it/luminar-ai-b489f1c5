@@ -35,19 +35,46 @@ interface MindmapData {
   branches: MindmapBranch[];
 }
 
-const BRANCH_COLORS: Record<string, { bg: string; border: string; text: string; edge: string }> = {
-  blue: { bg: 'hsl(210 90% 95%)', border: 'hsl(210 90% 50%)', text: 'hsl(210 90% 25%)', edge: 'hsl(210 90% 50%)' },
-  purple: { bg: 'hsl(270 80% 95%)', border: 'hsl(270 80% 50%)', text: 'hsl(270 80% 25%)', edge: 'hsl(270 80% 50%)' },
-  green: { bg: 'hsl(140 70% 93%)', border: 'hsl(140 70% 40%)', text: 'hsl(140 70% 20%)', edge: 'hsl(140 70% 40%)' },
-  orange: { bg: 'hsl(30 90% 93%)', border: 'hsl(30 90% 50%)', text: 'hsl(30 90% 25%)', edge: 'hsl(30 90% 50%)' },
-  red: { bg: 'hsl(0 80% 95%)', border: 'hsl(0 80% 50%)', text: 'hsl(0 80% 25%)', edge: 'hsl(0 80% 50%)' },
-  teal: { bg: 'hsl(180 70% 93%)', border: 'hsl(180 70% 40%)', text: 'hsl(180 70% 20%)', edge: 'hsl(180 70% 40%)' },
-  pink: { bg: 'hsl(330 80% 95%)', border: 'hsl(330 80% 50%)', text: 'hsl(330 80% 25%)', edge: 'hsl(330 80% 50%)' },
-  indigo: { bg: 'hsl(240 70% 95%)', border: 'hsl(240 70% 50%)', text: 'hsl(240 70% 25%)', edge: 'hsl(240 70% 50%)' },
+// Base hue/saturation for each color name
+const COLOR_BASE: Record<string, { h: number; s: number }> = {
+  blue: { h: 210, s: 90 },
+  purple: { h: 270, s: 80 },
+  green: { h: 140, s: 70 },
+  orange: { h: 30, s: 90 },
+  red: { h: 0, s: 80 },
+  teal: { h: 180, s: 70 },
+  pink: { h: 330, s: 80 },
+  indigo: { h: 240, s: 70 },
 };
 
-function getColor(colorName: string) {
-  return BRANCH_COLORS[colorName] || BRANCH_COLORS.blue;
+// Outline styles to differentiate same-level nodes from different parents
+const OUTLINE_STYLES = ['solid', 'dashed', 'dotted', 'double'] as const;
+
+function getOutlineStyle(parentIndex: number): string {
+  return OUTLINE_STYLES[parentIndex % OUTLINE_STYLES.length];
+}
+
+// depth 0 = branch (darkest), 1 = child, 2 = leaf, 3+ = expanded (lightest)
+function getColorAtDepth(colorName: string, depth: number) {
+  const base = COLOR_BASE[colorName] || COLOR_BASE.blue;
+  const { h, s } = base;
+  // bg lightness: darker at depth 0, lighter as depth increases
+  const bgL = Math.min(97, 85 + depth * 4);
+  // border lightness: darker at depth 0, lighter as depth increases
+  const borderL = Math.min(75, 40 + depth * 8);
+  // text lightness: darker at depth 0, lighter as depth increases
+  const textL = Math.min(45, 20 + depth * 6);
+  // edge matches border
+  const edgeL = borderL;
+  // saturation decreases slightly at deeper levels
+  const adjS = Math.max(30, s - depth * 8);
+
+  return {
+    bg: `hsl(${h} ${adjS}% ${bgL}%)`,
+    border: `hsl(${h} ${adjS}% ${borderL}%)`,
+    text: `hsl(${h} ${adjS}% ${textL}%)`,
+    edge: `hsl(${h} ${adjS}% ${edgeL}%)`,
+  };
 }
 
 // Extract plain text label from a node (handles JSX labels)
