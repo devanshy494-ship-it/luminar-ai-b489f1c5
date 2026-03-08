@@ -138,8 +138,14 @@ export default function Dashboard() {
             </div>
             <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <ThemeToggle />
+            <Avatar className="h-8 w-8 border border-border/50">
+              <AvatarImage src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt={userName} />
+              <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+                {userName.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
             <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
               <AlertDialogTrigger asChild>
                 <Button variant="ghost" size="sm">
