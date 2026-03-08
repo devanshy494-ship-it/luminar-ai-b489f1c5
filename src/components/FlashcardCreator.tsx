@@ -307,34 +307,13 @@ export default function FlashcardCreator() {
                   type="url"
                   placeholder="https://example.com/article or YouTube video URL"
                   value={url}
-                  onChange={(e) => { setUrl(e.target.value); setShowYtFallback(false); }}
+                  onChange={(e) => setUrl(e.target.value)}
                   className="h-12"
                 />
-                {url && isYouTubeUrl(url) && !showYtFallback && (
+                {url && isYouTubeUrl(url) && (
                   <p className="text-sm text-accent mt-2 flex items-center gap-1">
-                    <Youtube className="h-4 w-4" /> YouTube video detected — transcript will be extracted automatically
+                    <Youtube className="h-4 w-4" /> YouTube detected — AI will generate flashcards from the video topic
                   </p>
-                )}
-                {showYtFallback && (
-                  <div className="mt-3 p-3 rounded-xl bg-muted/50 border border-border">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      💡 <strong>How to get the transcript:</strong> Open the YouTube video → click "..." below the video → "Show transcript" → copy all the text
-                    </p>
-                    <Textarea
-                      placeholder="Paste the YouTube transcript here..."
-                      value={ytManualTranscript}
-                      onChange={(e) => setYtManualTranscript(e.target.value)}
-                      rows={4}
-                      className="resize-none mb-2"
-                    />
-                    <Button
-                      onClick={() => handleAnalyze(ytManualTranscript.trim())}
-                      disabled={ytManualTranscript.trim().length < 50}
-                      size="sm"
-                    >
-                      <Check className="h-3.5 w-3.5 mr-1" /> Use This Transcript
-                    </Button>
-                  </div>
                 )}
               </div>
             )}
