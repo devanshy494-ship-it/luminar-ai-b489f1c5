@@ -50,6 +50,12 @@ interface QuizResult {
   topics: { title: string } | null;
 }
 
+interface MindmapItem {
+  id: string;
+  topic: string;
+  created_at: string;
+}
+
 export default function Dashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
