@@ -16,6 +16,7 @@ import Mindmap from "./pages/Mindmap";
 import MyMindmaps from "./pages/MyMindmaps";
 import MyFlashcards from "./pages/MyFlashcards";
 import MyQuizzes from "./pages/MyQuizzes";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +47,7 @@ const AppRoutes = () => (
     <Route path="/my-mindmaps" element={<ProtectedRoute><MyMindmaps /></ProtectedRoute>} />
     <Route path="/my-flashcards" element={<ProtectedRoute><MyFlashcards /></ProtectedRoute>} />
     <Route path="/my-quizzes" element={<ProtectedRoute><MyQuizzes /></ProtectedRoute>} />
+    <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
     <Route path="*" element={<NotFound />} />
   </Routes>
