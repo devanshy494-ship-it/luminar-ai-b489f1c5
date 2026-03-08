@@ -311,7 +311,7 @@ export default function Roadmap() {
                                 href={resource.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors ${colorClass}`}
+                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors text-primary ${bgClass}`}
                               >
                                 <Icon className="h-3 w-3" />
                                 {resource.name}
