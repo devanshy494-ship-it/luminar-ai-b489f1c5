@@ -13,9 +13,11 @@ import {
   Position,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, ZoomIn, ZoomOut, Maximize2, Download } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BookOpen, ArrowLeft, Expand, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MindmapBranch {
   label: string;
@@ -48,15 +50,22 @@ function getColor(colorName: string) {
   return BRANCH_COLORS[colorName] || BRANCH_COLORS.blue;
 }
 
+// Extract plain text label from a node (handles JSX labels)
+function getNodeLabel(node: Node): string {
+  const data = node.data as any;
+  if (typeof data?.label === 'string') return data.label;
+  // For JSX labels, try to extract from the node id pattern or stored metadata
+  return data?._plainLabel || node.id;
+}
+
 function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] } {
   const nodes: Node[] = [];
   const edges: Edge[] = [];
 
-  // Central node
   nodes.push({
     id: 'center',
     position: { x: 0, y: 0 },
-    data: { label: data.title },
+    data: { label: data.title, _plainLabel: data.title, _colorName: 'primary' },
     type: 'default',
     style: {
       background: 'hsl(var(--primary))',
@@ -87,7 +96,6 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
     const branchId = `b-${bi}`;
     const color = getColor(branch.color);
 
-    // Level 1 node
     nodes.push({
       id: branchId,
       position: { x: bx, y: by },
@@ -100,6 +108,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
             )}
           </div>
         ),
+        _plainLabel: branch.label,
+        _colorName: branch.color,
       },
       style: {
         background: color.bg,
@@ -121,11 +131,10 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
       animated: true,
     });
 
-    // Level 2 children
     if (branch.children) {
       const childCount = branch.children.length;
       const childAngleSpread = Math.min(0.6, (childCount - 1) * 0.15);
-      
+
       branch.children.forEach((child, ci) => {
         const childAngle = angle + (ci - (childCount - 1) / 2) * childAngleSpread;
         const cx = bx + Math.cos(childAngle) * level2Radius;
@@ -144,6 +153,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
                 )}
               </div>
             ),
+            _plainLabel: child.label,
+            _colorName: branch.color,
           },
           style: {
             background: color.bg,
@@ -164,7 +175,6 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
           style: { stroke: color.edge, strokeWidth: 1.5, opacity: 0.7 },
         });
 
-        // Level 3 leaves
         if (child.children) {
           child.children.forEach((leaf, li) => {
             const leafAngle = childAngle + (li - (child.children!.length - 1) / 2) * 0.3;
@@ -181,6 +191,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
                     {leaf.label}
                   </div>
                 ),
+                _plainLabel: leaf.label,
+                _colorName: branch.color,
               },
               style: {
                 background: color.bg,
@@ -213,10 +225,11 @@ export default function Mindmap() {
   const location = useLocation();
   const navigate = useNavigate();
   const mindmapData: MindmapData | null = location.state?.mindmap || null;
-  const fromTopic: string | null = location.state?.fromTopic || null;
   const topicId: string | null = location.state?.topicId || null;
 
-  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+  const [expandingNode, setExpandingNode] = useState<string | null>(null);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   const { initialNodes, initialEdges } = useMemo(() => {
     if (!mindmapData) return { initialNodes: [], initialEdges: [] };
@@ -228,8 +241,98 @@ export default function Mindmap() {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const onNodeClick = useCallback((_: any, node: Node) => {
-    setSelectedNode(node.id === selectedNode ? null : node.id);
-  }, [selectedNode]);
+    setSelectedNode(prev => prev?.id === node.id ? null : node);
+  }, []);
+
+  const handleExpandNode = useCallback(async (node: Node) => {
+    const nodeId = node.id;
+    const nodeData = node.data as any;
+    const label = nodeData?._plainLabel || nodeId;
+    const colorName = nodeData?._colorName || 'blue';
+    const color = getColor(colorName);
+
+    setExpandingNode(nodeId);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('expand-mindmap-node', {
+        body: {
+          nodeLabel: label,
+          parentContext: mindmapData?.title || '',
+          rootTopic: mindmapData?.title || label,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.children?.length) {
+        toast.info('No further expansion available for this topic.');
+        return;
+      }
+
+      const children: { label: string; description?: string }[] = data.children;
+
+      // Calculate positions around the parent node
+      const parentPos = node.position;
+      const expandRadius = 180;
+      const angleStep = (2 * Math.PI) / children.length;
+      // Find an angle offset based on the parent's position relative to center
+      const baseAngle = Math.atan2(parentPos.y, parentPos.x);
+
+      const newNodes: Node[] = [];
+      const newEdges: Edge[] = [];
+
+      children.forEach((child, i) => {
+        const angle = baseAngle + angleStep * i - ((children.length - 1) * angleStep) / 2;
+        const cx = parentPos.x + Math.cos(angle) * expandRadius;
+        const cy = parentPos.y + Math.sin(angle) * expandRadius;
+        const childId = `${nodeId}-exp-${i}`;
+
+        newNodes.push({
+          id: childId,
+          position: { x: cx, y: cy },
+          data: {
+            label: (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontWeight: 500, fontSize: '11px' }}>{child.label}</div>
+                {child.description && (
+                  <div style={{ fontSize: '9px', opacity: 0.65, marginTop: '3px', maxWidth: '120px' }}>{child.description}</div>
+                )}
+              </div>
+            ),
+            _plainLabel: child.label,
+            _colorName: colorName,
+          },
+          style: {
+            background: color.bg,
+            border: `1.5px dashed ${color.border}`,
+            borderRadius: '10px',
+            padding: '8px 12px',
+            color: color.text,
+            minWidth: '80px',
+            maxWidth: '160px',
+          },
+        });
+
+        newEdges.push({
+          id: `e-${nodeId}-${childId}`,
+          source: nodeId,
+          target: childId,
+          style: { stroke: color.edge, strokeWidth: 1.5, opacity: 0.6 },
+          animated: true,
+        });
+      });
+
+      setNodes(prev => [...prev, ...newNodes]);
+      setEdges(prev => [...prev, ...newEdges]);
+      setExpandedNodes(prev => new Set([...prev, nodeId]));
+      toast.success(`Expanded "${label}" with ${children.length} sub-topics`);
+    } catch (e: any) {
+      console.error('Expand error:', e);
+      toast.error(e?.message || 'Failed to expand node');
+    } finally {
+      setExpandingNode(null);
+      setSelectedNode(null);
+    }
+  }, [mindmapData, setNodes, setEdges]);
 
   if (!mindmapData) {
     return (
@@ -239,6 +342,8 @@ export default function Mindmap() {
       </div>
     );
   }
+
+  const canExpand = selectedNode && selectedNode.id !== 'center' && !expandedNodes.has(selectedNode.id) && expandingNode !== selectedNode.id;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -274,6 +379,7 @@ export default function Mindmap() {
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onNodeClick={onNodeClick}
+          onPaneClick={() => setSelectedNode(null)}
           fitView
           fitViewOptions={{ padding: 0.3 }}
           minZoom={0.1}
@@ -305,6 +411,62 @@ export default function Mindmap() {
           />
         </ReactFlow>
 
+        {/* Expand Tooltip */}
+        <AnimatePresence>
+          {selectedNode && selectedNode.id !== 'center' && (
+            <motion.div
+              key="expand-tooltip"
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.15 }}
+              className="absolute top-20 right-4 z-50"
+            >
+              <div className="glass-card border border-border/50 rounded-xl p-3 shadow-lg max-w-[220px]">
+                <p className="text-xs font-semibold text-foreground mb-1 truncate">
+                  {(selectedNode.data as any)?._plainLabel || selectedNode.id}
+                </p>
+                {(selectedNode.data as any)?._plainLabel && (
+                  <p className="text-[10px] text-muted-foreground mb-2">
+                    {expandedNodes.has(selectedNode.id) ? 'Already expanded' : 'Click below to dive deeper'}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  className="w-full text-xs"
+                  disabled={!canExpand || !!expandingNode}
+                  onClick={() => handleExpandNode(selectedNode)}
+                >
+                  {expandingNode === selectedNode.id ? (
+                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
+                  ) : expandedNodes.has(selectedNode.id) ? (
+                    'Already expanded'
+                  ) : (
+                    <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading overlay */}
+        <AnimatePresence>
+          {expandingNode && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-background/30 backdrop-blur-[2px] flex items-center justify-center z-40 pointer-events-none"
+            >
+              <div className="flex items-center gap-2 bg-card border border-border rounded-xl px-4 py-3 shadow-lg">
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <span className="text-sm text-foreground font-medium">Expanding topic...</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Legend */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -316,6 +478,7 @@ export default function Mindmap() {
           <div className="space-y-1 text-muted-foreground">
             <p>🖱 Scroll to zoom</p>
             <p>🖱 Drag to pan</p>
+            <p>🖱 Click node to expand</p>
             <p>🖱 Drag nodes to rearrange</p>
           </div>
         </motion.div>
