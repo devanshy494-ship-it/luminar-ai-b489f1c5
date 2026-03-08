@@ -178,8 +178,8 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-10 max-w-5xl">
         <motion.div className="mb-10" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">Welcome back, {userName}</h1>
-          <p className="text-muted-foreground text-lg">Continue your learning journey.</p>
+           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{isFirstVisit ? 'Welcome,' : 'Welcome back,'} {userName}</h1>
+           <p className="text-muted-foreground text-lg">{isFirstVisit ? "Let's start your learning journey." : 'Continue your learning journey.'}</p>
         </motion.div>
 
         {/* Quick Actions */}
