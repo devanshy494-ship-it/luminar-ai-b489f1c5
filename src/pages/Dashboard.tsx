@@ -62,7 +62,7 @@ export default function Dashboard() {
     if (!user) return;
 
     supabase.from('topics').select('id, title, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(6)
-      .then(({ data }) => { setTopics(data || []); setLoading(false); });
+      .then(({ data }) => { setTopics(data || []); setIsFirstVisit(!data || data.length === 0); setLoading(false); });
 
     supabase.from('roadmaps').select('id, progress, created_at, topic_id, topics(title)').eq('user_id', user.id).order('created_at', { ascending: false })
       .then(({ data }) => { setRoadmaps((data as any) || []); setLoadingRoadmaps(false); });
