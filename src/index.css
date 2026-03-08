@@ -179,12 +179,12 @@
 
   .aurora-bg::before {
     content: '';
-    position: absolute;
-    inset: -50%;
+    position: fixed;
+    inset: 0;
     background: 
-      radial-gradient(ellipse at 20% 50%, hsl(var(--neon-cyan) / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, hsl(var(--neon-purple) / 0.08) 0%, transparent 50%),
-      radial-gradient(ellipse at 40% 80%, hsl(190 100% 50% / 0.05) 0%, transparent 50%);
+      radial-gradient(ellipse at 20% 50%, hsl(var(--neon-cyan) / 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, hsl(var(--neon-purple) / 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 40% 80%, hsl(190 100% 50% / 0.05) 0%, transparent 60%);
     animation: aurora 15s ease-in-out infinite;
     pointer-events: none;
     z-index: 0;
