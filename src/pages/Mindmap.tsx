@@ -35,19 +35,46 @@ interface MindmapData {
   branches: MindmapBranch[];
 }
 
-const BRANCH_COLORS: Record<string, { bg: string; border: string; text: string; edge: string }> = {
-  blue: { bg: 'hsl(210 90% 95%)', border: 'hsl(210 90% 50%)', text: 'hsl(210 90% 25%)', edge: 'hsl(210 90% 50%)' },
-  purple: { bg: 'hsl(270 80% 95%)', border: 'hsl(270 80% 50%)', text: 'hsl(270 80% 25%)', edge: 'hsl(270 80% 50%)' },
-  green: { bg: 'hsl(140 70% 93%)', border: 'hsl(140 70% 40%)', text: 'hsl(140 70% 20%)', edge: 'hsl(140 70% 40%)' },
-  orange: { bg: 'hsl(30 90% 93%)', border: 'hsl(30 90% 50%)', text: 'hsl(30 90% 25%)', edge: 'hsl(30 90% 50%)' },
-  red: { bg: 'hsl(0 80% 95%)', border: 'hsl(0 80% 50%)', text: 'hsl(0 80% 25%)', edge: 'hsl(0 80% 50%)' },
-  teal: { bg: 'hsl(180 70% 93%)', border: 'hsl(180 70% 40%)', text: 'hsl(180 70% 20%)', edge: 'hsl(180 70% 40%)' },
-  pink: { bg: 'hsl(330 80% 95%)', border: 'hsl(330 80% 50%)', text: 'hsl(330 80% 25%)', edge: 'hsl(330 80% 50%)' },
-  indigo: { bg: 'hsl(240 70% 95%)', border: 'hsl(240 70% 50%)', text: 'hsl(240 70% 25%)', edge: 'hsl(240 70% 50%)' },
+// Base hue/saturation for each color name
+const COLOR_BASE: Record<string, { h: number; s: number }> = {
+  blue: { h: 210, s: 90 },
+  purple: { h: 270, s: 80 },
+  green: { h: 140, s: 70 },
+  orange: { h: 30, s: 90 },
+  red: { h: 0, s: 80 },
+  teal: { h: 180, s: 70 },
+  pink: { h: 330, s: 80 },
+  indigo: { h: 240, s: 70 },
 };
 
-function getColor(colorName: string) {
-  return BRANCH_COLORS[colorName] || BRANCH_COLORS.blue;
+// Outline styles to differentiate same-level nodes from different parents
+const OUTLINE_STYLES = ['solid', 'dashed', 'dotted', 'double'] as const;
+
+function getOutlineStyle(parentIndex: number): string {
+  return OUTLINE_STYLES[parentIndex % OUTLINE_STYLES.length];
+}
+
+// depth 0 = branch (darkest), 1 = child, 2 = leaf, 3+ = expanded (lightest)
+function getColorAtDepth(colorName: string, depth: number) {
+  const base = COLOR_BASE[colorName] || COLOR_BASE.blue;
+  const { h, s } = base;
+  // bg lightness: darker at depth 0, lighter as depth increases
+  const bgL = Math.min(97, 85 + depth * 4);
+  // border lightness: darker at depth 0, lighter as depth increases
+  const borderL = Math.min(75, 40 + depth * 8);
+  // text lightness: darker at depth 0, lighter as depth increases
+  const textL = Math.min(45, 20 + depth * 6);
+  // edge matches border
+  const edgeL = borderL;
+  // saturation decreases slightly at deeper levels
+  const adjS = Math.max(30, s - depth * 8);
+
+  return {
+    bg: `hsl(${h} ${adjS}% ${bgL}%)`,
+    border: `hsl(${h} ${adjS}% ${borderL}%)`,
+    text: `hsl(${h} ${adjS}% ${textL}%)`,
+    edge: `hsl(${h} ${adjS}% ${edgeL}%)`,
+  };
 }
 
 // Extract plain text label from a node (handles JSX labels)
@@ -94,7 +121,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
     const bx = Math.cos(angle) * level1Radius;
     const by = Math.sin(angle) * level1Radius;
     const branchId = `b-${bi}`;
-    const color = getColor(branch.color);
+    const color = getColorAtDepth(branch.color, 0);
 
     nodes.push({
       id: branchId,
@@ -110,10 +137,12 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
         ),
         _plainLabel: branch.label,
         _colorName: branch.color,
+        _depth: 0,
+        _branchIndex: bi,
       },
       style: {
         background: color.bg,
-        border: `2px solid ${color.border}`,
+        border: `2.5px solid ${color.border}`,
         borderRadius: '14px',
         padding: '12px 16px',
         color: color.text,
@@ -140,6 +169,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
         const cx = bx + Math.cos(childAngle) * level2Radius;
         const cy = by + Math.sin(childAngle) * level2Radius;
         const childId = `b-${bi}-c-${ci}`;
+        const childColor = getColorAtDepth(branch.color, 1);
+        const outlineStyle = getOutlineStyle(bi);
 
         nodes.push({
           id: childId,
@@ -155,14 +186,15 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
             ),
             _plainLabel: child.label,
             _colorName: branch.color,
+            _depth: 1,
+            _branchIndex: bi,
           },
           style: {
-            background: color.bg,
-            border: `1.5px solid ${color.border}`,
+            background: childColor.bg,
+            border: `1.5px ${outlineStyle} ${childColor.border}`,
             borderRadius: '10px',
             padding: '8px 12px',
-            color: color.text,
-            opacity: 0.9,
+            color: childColor.text,
             minWidth: '90px',
             maxWidth: '170px',
           },
@@ -172,7 +204,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
           id: `e-${branchId}-${childId}`,
           source: branchId,
           target: childId,
-          style: { stroke: color.edge, strokeWidth: 1.5, opacity: 0.7 },
+          style: { stroke: childColor.edge, strokeWidth: 1.5, opacity: 0.7 },
         });
 
         if (child.children) {
@@ -181,6 +213,8 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
             const lx = cx + Math.cos(leafAngle) * level3Radius;
             const ly = cy + Math.sin(leafAngle) * level3Radius;
             const leafId = `b-${bi}-c-${ci}-l-${li}`;
+            const leafColor = getColorAtDepth(branch.color, 2);
+            const leafOutline = getOutlineStyle(ci);
 
             nodes.push({
               id: leafId,
@@ -193,14 +227,15 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
                 ),
                 _plainLabel: leaf.label,
                 _colorName: branch.color,
+                _depth: 2,
+                _branchIndex: bi,
               },
               style: {
-                background: color.bg,
-                border: `1px solid ${color.border}`,
+                background: leafColor.bg,
+                border: `1px ${leafOutline} ${leafColor.border}`,
                 borderRadius: '8px',
                 padding: '6px 10px',
-                color: color.text,
-                opacity: 0.75,
+                color: leafColor.text,
                 fontSize: '11px',
                 maxWidth: '140px',
               },
@@ -210,7 +245,7 @@ function buildNodesAndEdges(data: MindmapData): { nodes: Node[]; edges: Edge[] }
               id: `e-${childId}-${leafId}`,
               source: childId,
               target: leafId,
-              style: { stroke: color.edge, strokeWidth: 1, opacity: 0.5 },
+              style: { stroke: leafColor.edge, strokeWidth: 1, opacity: 0.5 },
             });
           });
         }
@@ -249,7 +284,11 @@ export default function Mindmap() {
     const nodeData = node.data as any;
     const label = nodeData?._plainLabel || nodeId;
     const colorName = nodeData?._colorName || 'blue';
-    const color = getColor(colorName);
+    const parentDepth = nodeData?._depth ?? 1;
+    const branchIndex = nodeData?._branchIndex ?? 0;
+    const newDepth = parentDepth + 1;
+    const color = getColorAtDepth(colorName, newDepth);
+    const outlineStyle = getOutlineStyle(branchIndex);
 
     setExpandingNode(nodeId);
 
@@ -270,11 +309,9 @@ export default function Mindmap() {
 
       const children: { label: string; description?: string }[] = data.children;
 
-      // Calculate positions around the parent node
       const parentPos = node.position;
       const expandRadius = 180;
       const angleStep = (2 * Math.PI) / children.length;
-      // Find an angle offset based on the parent's position relative to center
       const baseAngle = Math.atan2(parentPos.y, parentPos.x);
 
       const newNodes: Node[] = [];
@@ -300,10 +337,12 @@ export default function Mindmap() {
             ),
             _plainLabel: child.label,
             _colorName: colorName,
+            _depth: newDepth,
+            _branchIndex: branchIndex,
           },
           style: {
             background: color.bg,
-            border: `1.5px dashed ${color.border}`,
+            border: `1.5px ${outlineStyle} ${color.border}`,
             borderRadius: '10px',
             padding: '8px 12px',
             color: color.text,
