@@ -326,6 +326,8 @@ export default function Roadmap() {
             steps={roadmap.steps}
             progress={roadmap.progress}
             extraMaterials={extraMaterials}
+            lessons={lessons}
+            stepIndex={exportStepIndex}
           />
 
           {/* Progress Bar */}
