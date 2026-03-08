@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, Expand, Loader2, X } from 'lucide-react';
+import { BookOpen, ArrowLeft, Expand, Shrink, Loader2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -373,6 +373,34 @@ export default function Mindmap() {
     }
   }, [mindmapData, setNodes, setEdges]);
 
+  const handleCollapseNode = useCallback((node: Node) => {
+    const nodeId = node.id;
+    // Find all descendant node IDs recursively
+    const getDescendants = (parentId: string, edgeList: Edge[]): Set<string> => {
+      const children = edgeList.filter(e => e.source === parentId).map(e => e.target);
+      const all = new Set<string>(children);
+      children.forEach(childId => {
+        getDescendants(childId, edgeList).forEach(id => all.add(id));
+      });
+      return all;
+    };
+
+    setEdges(prev => {
+      const descendants = getDescendants(nodeId, prev);
+      setNodes(prevNodes => prevNodes.filter(n => !descendants.has(n.id)));
+      return prev.filter(e => !descendants.has(e.target));
+    });
+
+    setExpandedNodes(prev => {
+      const next = new Set(prev);
+      next.delete(nodeId);
+      return next;
+    });
+
+    setSelectedNode(null);
+    toast.success(`Collapsed "${(node.data as any)?._plainLabel || nodeId}"`);
+  }, [setNodes, setEdges]);
+
   if (!mindmapData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -382,6 +410,7 @@ export default function Mindmap() {
     );
   }
 
+  const isExpanded = selectedNode ? expandedNodes.has(selectedNode.id) : false;
   const canExpand = selectedNode && selectedNode.id !== 'center' && expandingNode !== selectedNode.id;
 
   return (
@@ -467,21 +496,34 @@ export default function Mindmap() {
                 </p>
                 {(selectedNode.data as any)?._plainLabel && (
                   <p className="text-[10px] text-muted-foreground mb-2">
-                    Click below to dive deeper
+                    {isExpanded ? 'Expand further or collapse' : 'Click below to dive deeper'}
                   </p>
                 )}
-                <Button
-                  size="sm"
-                  className="w-full text-xs"
-                  disabled={!canExpand || !!expandingNode}
-                  onClick={() => handleExpandNode(selectedNode)}
-                >
-                  {expandingNode === selectedNode.id ? (
-                    <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
-                  ) : (
-                    <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    size="sm"
+                    className="w-full text-xs"
+                    disabled={!canExpand || !!expandingNode}
+                    onClick={() => handleExpandNode(selectedNode)}
+                  >
+                    {expandingNode === selectedNode.id ? (
+                      <><Loader2 className="h-3 w-3 mr-1 animate-spin" /> Expanding...</>
+                    ) : (
+                      <><Expand className="h-3 w-3 mr-1" /> Expand this topic</>
+                    )}
+                  </Button>
+                  {isExpanded && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full text-xs"
+                      disabled={!!expandingNode}
+                      onClick={() => handleCollapseNode(selectedNode)}
+                    >
+                      <Shrink className="h-3 w-3 mr-1" /> Collapse
+                    </Button>
                   )}
-                </Button>
+                </div>
               </div>
             </motion.div>
           )}
