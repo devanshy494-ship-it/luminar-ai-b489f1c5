@@ -21,6 +21,7 @@ export type Database = {
           front: string
           id: string
           mastery_level: number
+          step_index: number | null
           topic_id: string
           user_id: string
         }
@@ -30,6 +31,7 @@ export type Database = {
           front: string
           id?: string
           mastery_level?: number
+          step_index?: number | null
           topic_id: string
           user_id: string
         }
@@ -39,6 +41,7 @@ export type Database = {
           front?: string
           id?: string
           mastery_level?: number
+          step_index?: number | null
           topic_id?: string
           user_id?: string
         }
@@ -85,27 +88,33 @@ export type Database = {
           id: string
           questions: Json
           score: number
+          step_index: number | null
           topic_id: string
           total: number
           user_id: string
+          wrong_questions: Json | null
         }
         Insert: {
           completed_at?: string
           id?: string
           questions?: Json
           score: number
+          step_index?: number | null
           topic_id: string
           total: number
           user_id: string
+          wrong_questions?: Json | null
         }
         Update: {
           completed_at?: string
           id?: string
           questions?: Json
           score?: number
+          step_index?: number | null
           topic_id?: string
           total?: number
           user_id?: string
+          wrong_questions?: Json | null
         }
         Relationships: [
           {
