@@ -304,7 +304,7 @@ export default function Roadmap() {
                             }
                             const resource = r as Resource;
                             const Icon = resource.type === 'video' ? Play : resource.type === 'docs' ? FileText : resource.type === 'exercise' ? Dumbbell : ExternalLink;
-                            const colorClass = resource.type === 'video' ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'text-primary bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'text-accent bg-accent/10 hover:bg-accent/20' : 'text-muted-foreground bg-muted hover:bg-muted/80';
+                            const bgClass = resource.type === 'video' ? 'bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'bg-accent/10 hover:bg-accent/20' : 'bg-muted hover:bg-muted/80';
                             return (
                               <a
                                 key={ri}
