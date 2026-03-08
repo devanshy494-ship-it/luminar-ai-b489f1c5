@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { lovable } from '@/integrations/lovable/index';
 
 interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  quickSignIn: (fullName: string) => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -33,23 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const quickSignIn = async (fullName: string) => {
-    // Generate a unique email and password for this user
-    const id = crypto.randomUUID().slice(0, 8);
-    const email = `${id}@luminar.local`;
-    const password = crypto.randomUUID();
-
-    // Try sign up first
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName },
-      },
+  const signInWithGoogle = async () => {
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
     });
 
-    if (signUpError) {
-      return { error: signUpError as Error };
+    if (result.error) {
+      return { error: result.error as Error };
     }
 
     return { error: null };
@@ -60,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, loading, quickSignIn, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signInWithGoogle, signOut }}>
       {children}
     </AuthContext.Provider>
   );

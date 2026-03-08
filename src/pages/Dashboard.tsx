@@ -127,9 +127,27 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
-              <LogOut className="h-4 w-4 mr-2" /> Sign Out
-            </Button>
+            <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Sign out of Luminar?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to sign out? You can sign back in anytime with your Google account to access your progress.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => { await signOut(); navigate('/'); }}>
+                    Sign Out
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </nav>
