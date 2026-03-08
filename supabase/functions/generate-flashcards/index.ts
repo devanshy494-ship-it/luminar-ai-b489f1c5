@@ -30,14 +30,14 @@ serve(async (req) => {
       });
     }
 
-    const { topicId, stepIndex, stepTitle } = await req.json();
+    const { topicId, stepIndex, stepTitle, cardCount } = await req.json();
     if (!topicId) {
       return new Response(JSON.stringify({ error: "topicId is required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: topic } = await supabase.from("topics").select("title").eq("id", topicId).single();
+    const { data: topic } = await supabase.from("topics").select("title, generation_context").eq("id", topicId).single();
     if (!topic) {
       return new Response(JSON.stringify({ error: "Topic not found" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -47,7 +47,35 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
+    const numCards = cardCount || 10;
+    const ctx = topic.generation_context as any;
+
+    // Build a rich prompt using stored generation context if available
+    let systemPrompt: string;
+    let userPrompt: string;
+
+    if (ctx && ctx.selectedTopics) {
+      const topicsList = ctx.selectedTopics
+        .map((t: any) => `- ${t.name}: ${t.subtopics?.join(", ") || "general"}`)
+        .join("\n");
+
+      const scopeInstruction = ctx.scope
+        ? `\n\nIMPORTANT FOCUS: The user wants flashcards specifically about: "${ctx.scope}". All new cards must stay relevant to this focus.`
+        : "";
+
+      systemPrompt = `You are a flashcard generator for learning. Create ${numCards} NEW flashcards covering these topics:\n${topicsList}\n\nEach flashcard should have a front (question/term) and back (answer/definition). Make them progressively harder. Do NOT repeat concepts that would be in basic flashcards — generate fresh, deeper questions.${scopeInstruction}`;
+
+      const contentHint = ctx.contentSummary
+        ? `\n\nHere is a summary of the original source content for reference:\n${ctx.contentSummary}`
+        : "";
+
+      userPrompt = `Create ${numCards} additional flashcards for "${topic.title}".${contentHint}`;
+    } else {
+      // Fallback: no generation context (e.g., roadmap-generated flashcards)
+      const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
+      systemPrompt = `You are a flashcard generator for learning. Create ${numCards} flashcards with a front (question/term) and back (answer/definition) for the given topic. Make them progressively harder.`;
+      userPrompt = `Create flashcards for studying: ${subject}`;
+    }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -58,8 +86,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a flashcard generator for learning. Create 10 flashcards with a front (question/term) and back (answer/definition) for the given topic. Make them progressively harder." },
-          { role: "user", content: `Create flashcards for studying: ${subject}` },
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
         ],
         tools: [{
           type: "function",

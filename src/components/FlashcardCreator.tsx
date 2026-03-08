@@ -487,6 +487,7 @@ export default function FlashcardCreator() {
                 setFileName('');
                 setUrl('');
                 setTextContent('');
+                setScopeInstructions('');
                 setError('');
               }}>
                 Create More

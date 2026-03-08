@@ -13,8 +13,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -24,23 +23,18 @@ serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
       return new Response(JSON.stringify({ error: "Not authenticated" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { content, title, selectedTopics, totalCards } = await req.json();
+    const { content, title, selectedTopics, totalCards, scope } = await req.json();
 
     if (!content || !title || !selectedTopics || !totalCards) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -55,15 +49,32 @@ serve(async (req) => {
       throw new Error("Failed to create topic: " + (topicError?.message || "Unknown"));
     }
 
+    // Save generation context for "Generate More" to use later
+    const contentSummary = content.length > 2000 ? content.slice(0, 2000) : content;
+    const generationContext = {
+      selectedTopics,
+      scope: scope || null,
+      totalCards,
+      contentSummary,
+    };
+
+    await supabase
+      .from("topics")
+      .update({ generation_context: generationContext })
+      .eq("id", topic.id);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    // Truncate content for AI
     const truncated = content.length > 15000 ? content.slice(0, 15000) + "\n[...content truncated...]" : content;
 
     const topicsList = selectedTopics
       .map((t: any) => `- ${t.name}: ${t.subtopics.join(", ")}`)
       .join("\n");
+
+    const scopeInstruction = scope
+      ? `\n\nIMPORTANT FOCUS: The user wants flashcards specifically about: "${scope}". Prioritize this focus area and ensure all cards are relevant to it.`
+      : "";
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -76,7 +87,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are a flashcard generator. Create exactly ${totalCards} flashcards from the provided content, covering these topics:\n${topicsList}\n\nEach flashcard should have a clear question (front) and concise answer (back). Make them progressively harder. Cover all listed topics proportionally.`,
+            content: `You are a flashcard generator. Create exactly ${totalCards} flashcards from the provided content, covering these topics:\n${topicsList}\n\nEach flashcard should have a clear question (front) and concise answer (back). Make them progressively harder. Cover all listed topics proportionally.${scopeInstruction}`,
           },
           {
             role: "user",
@@ -119,12 +130,10 @@ serve(async (req) => {
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
-      // Clean up topic on failure
       await supabase.from("topics").delete().eq("id", topic.id);
       if (status === 429)
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       throw new Error("AI generation failed");
     }
@@ -154,11 +163,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({
-        topicId: topic.id,
-        title,
-        cardsGenerated: flashcards.length,
-      }),
+      JSON.stringify({ topicId: topic.id, title, cardsGenerated: flashcards.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (e) {
