@@ -53,9 +53,7 @@ export default function Admin() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await supabase.functions.invoke('admin-users', {
-        method: 'GET',
-      });
+      const response = await supabase.functions.invoke('admin-users');
 
       if (response.error) throw response.error;
       setUsers(response.data.users || []);
