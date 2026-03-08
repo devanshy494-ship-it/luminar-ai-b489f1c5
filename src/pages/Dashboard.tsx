@@ -234,7 +234,8 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <TabsList>
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
-                <TabsTrigger value="flashcards"><Sparkles className="h-4 w-Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrig   Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrig"><Crosshair clZaph-4 w-4 mZap Quizzes<Zapger>
+                <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
+                <TabsTrigger value="quizzes"><Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
                 <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1.5" /> History</TabsTrigger>
               </TabsList>
               <Button variant="outline" size="sm" onClick={() => navigate('/learn')}>
