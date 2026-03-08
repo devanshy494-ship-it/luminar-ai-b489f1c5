@@ -168,12 +168,14 @@ export default function Dashboard() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-background aurora-bg">
+      <nav className="border-b border-border/50 glass-nav sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-bold text-foreground">Luminar</span>
+            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center neon-glow-sm">
+              <BookOpen className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
@@ -184,44 +186,47 @@ export default function Dashboard() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-10 max-w-5xl">
+      <main className="container mx-auto px-4 py-10 max-w-5xl relative z-10">
         <motion.div className="mb-10" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">{isFirstVisit ? 'Welcome,' : 'Welcome back,'} {userName}</h1>
+           <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 font-heading">
+             {isFirstVisit ? 'Welcome,' : 'Welcome back,'}{' '}
+             <span className="gradient-text">{userName}</span>
+           </h1>
            <p className="text-muted-foreground text-lg">{isFirstVisit ? "Let's start your learning journey." : 'Continue your learning journey.'}</p>
         </motion.div>
 
         {/* Quick Actions */}
         <motion.div className="grid sm:grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}>
-          <button onClick={() => navigate('/learn')} className="group p-6 rounded-xl bg-primary/5 border border-primary/20 hover:border-primary/40 hover:bg-primary/10 transition-all text-left">
+          <button onClick={() => navigate('/learn')} className="group p-6 rounded-2xl glass-card border border-primary/20 hover:border-primary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-cyan)/0.3)]">
             <Brain className="h-8 w-8 text-primary mb-3" />
-            <h3 className="font-serif font-bold text-foreground mb-1">New Roadmap</h3>
+            <h3 className="font-heading font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
           </button>
-          <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
-            <Sparkles className="h-8 w-8 text-accent mb-3" />
-            <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
+          <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-2xl glass-card border border-secondary/20 hover:border-secondary/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--neon-purple)/0.3)]">
+            <Sparkles className="h-8 w-8 text-secondary mb-3" />
+            <h3 className="font-heading font-bold text-foreground mb-1">Flashcards</h3>
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
-          <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
+          <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-2xl glass-card border border-warning/20 hover:border-warning/50 card-hover transition-all text-left hover:shadow-[0_0_24px_-6px_hsl(var(--warning)/0.3)]">
             <Zap className="h-8 w-8 text-warning mb-3" />
-            <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
+            <h3 className="font-heading font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
           </button>
         </motion.div>
 
         {/* Stats */}
         <motion.div className="grid grid-cols-3 gap-4 mb-12" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.2 }}>
-          <div className="p-5 rounded-xl bg-card border border-border text-center">
+          <div className="p-5 rounded-2xl glass-card border-t-2 border-t-primary border border-border/50 text-center">
             <Brain className="h-6 w-6 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{roadmaps.length}</p>
             <p className="text-sm text-muted-foreground">Roadmaps</p>
           </div>
-          <div className="p-5 rounded-xl bg-card border border-border text-center">
-            <Sparkles className="h-6 w-6 text-accent mx-auto mb-2" />
+          <div className="p-5 rounded-2xl glass-card border-t-2 border-t-secondary border border-border/50 text-center">
+            <Sparkles className="h-6 w-6 text-secondary mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{flashcardGroups.reduce((sum, g) => sum + g.count, 0)}</p>
             <p className="text-sm text-muted-foreground">Flashcards</p>
           </div>
-          <div className="p-5 rounded-xl bg-card border border-border text-center">
+          <div className="p-5 rounded-2xl glass-card border-t-2 border-t-warning border border-border/50 text-center">
             <Zap className="h-6 w-6 text-warning mx-auto mb-2" />
             <p className="text-2xl font-bold text-foreground">{quizResults.length}</p>
             <p className="text-sm text-muted-foreground">Quizzes</p>
@@ -232,7 +237,7 @@ export default function Dashboard() {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" id="dashboard-tabs">
             <div className="flex items-center justify-between mb-6">
-              <TabsList>
+              <TabsList className="glass-card border border-border/50">
                 <TabsTrigger value="roadmaps"><Map className="h-4 w-4 mr-1.5" /> Roadmaps</TabsTrigger>
                 <TabsTrigger value="flashcards"><Sparkles className="h-4 w-4 mr-1.5" /> Flashcards</TabsTrigger>
                 <TabsTrigger value="quizzes"><Zap className="h-4 w-4 mr-1.5" /> Quizzes</TabsTrigger>
@@ -253,14 +258,14 @@ export default function Dashboard() {
                 className={highlightTab && activeTab === 'roadmaps' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
               >
               {loadingRoadmaps ? (
-                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
               ) : roadmaps.length > 0 ? (
                 <div className="grid gap-3">
                   {roadmaps.map((roadmap) => (
                     <div key={roadmap.id} className="flex items-center gap-2">
                       <button
                         onClick={() => navigate(`/roadmap/${roadmap.topic_id}`)}
-                        className="flex-1 flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
+                        className="flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border border-border/50 hover:border-primary/30 card-hover transition-all text-left hover:neon-glow-sm"
                       >
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-foreground truncate">{roadmap.topics?.title || 'Untitled'}</h3>
@@ -269,7 +274,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3 ml-4">
                           <div className="flex items-center gap-2">
                             <div className="w-24 h-2 rounded-full bg-muted overflow-hidden">
-                              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${roadmap.progress}%` }} />
+                              <div className="h-full rounded-full gradient-primary transition-all" style={{ width: `${roadmap.progress}%` }} />
                             </div>
                             <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">{roadmap.progress}%</span>
                           </div>
@@ -311,16 +316,16 @@ export default function Dashboard() {
                 className={highlightTab && activeTab === 'quizzes' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
               >
               {loadingQuizzes ? (
-                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
               ) : Object.keys(quizByTopic).length > 0 ? (
                 <div className="space-y-6">
                   {Object.entries(quizByTopic).map(([topicId, { title, quizzes }]) => (
                     <div key={topicId}>
-                      <h3 className="font-serif font-bold text-foreground mb-3 text-lg">{title}</h3>
+                      <h3 className="font-heading font-bold text-foreground mb-3 text-lg">{title}</h3>
                       <div className="grid gap-2 ml-2">
                         {quizzes.map((quiz) => (
                           <div key={quiz.id} className="flex items-center gap-2">
-                            <div className="flex-1 p-4 rounded-xl bg-card border border-border">
+                            <div className="flex-1 p-4 rounded-2xl glass-card border border-border/50">
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm font-medium text-foreground">
@@ -364,18 +369,18 @@ export default function Dashboard() {
               <div className="space-y-8">
                 {/* Flashcard History */}
                 <div>
-                  <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-accent" /> Flashcard Sets
+                  <h3 className="font-heading font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-secondary" /> Flashcard Sets
                   </h3>
                   {loadingFlashcards ? (
-                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
                   ) : flashcardGroups.length > 0 ? (
                     <div className="grid gap-3">
                       {flashcardGroups.map((group, i) => (
                         <div key={i} className="flex items-center gap-2">
                           <button
                             onClick={() => navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`)}
-                            className="flex-1 flex items-center justify-between p-5 rounded-xl bg-card border border-border hover:border-primary/30 hover:shadow-sm transition-all text-left"
+                            className="flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border border-border/50 hover:border-primary/30 card-hover transition-all text-left"
                           >
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-foreground truncate">{group.topic_title}</h3>
@@ -390,17 +395,17 @@ export default function Dashboard() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-8 bg-card rounded-xl border border-border">No flashcard sets yet</p>
+                    <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No flashcard sets yet</p>
                   )}
                 </div>
 
                 {/* Quiz History */}
                 <div>
-                  <h3 className="font-serif font-bold text-foreground mb-4 text-lg flex items-center gap-2">
+                  <h3 className="font-heading font-bold text-foreground mb-4 text-lg flex items-center gap-2">
                     <Zap className="h-5 w-5 text-warning" /> Quiz Results
                   </h3>
                   {loadingQuizzes ? (
-                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
+                    <div className="grid gap-3">{[1, 2].map((i) => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>
                   ) : Object.keys(quizByTopic).length > 0 ? (
                     <div className="space-y-6">
                       {Object.entries(quizByTopic).map(([topicId, { title, quizzes }]) => (
@@ -409,7 +414,7 @@ export default function Dashboard() {
                           <div className="grid gap-2 ml-2">
                             {quizzes.map((quiz) => (
                               <div key={quiz.id} className="flex items-center gap-2">
-                                <div className="flex-1 p-4 rounded-xl bg-card border border-border">
+                                <div className="flex-1 p-4 rounded-2xl glass-card border border-border/50">
                                   <div className="flex items-center justify-between">
                                     <div>
                                       <p className="text-sm font-medium text-foreground">
@@ -442,7 +447,7 @@ export default function Dashboard() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground text-center py-8 bg-card rounded-xl border border-border">No quiz results yet</p>
+                    <p className="text-muted-foreground text-center py-8 glass-card rounded-2xl border border-border/50">No quiz results yet</p>
                   )}
                 </div>
               </div>
@@ -456,11 +461,11 @@ export default function Dashboard() {
 
 function EmptyState({ icon: Icon, title, desc, onAction, actionText }: { icon: any; title: string; desc: string; onAction: () => void; actionText: string }) {
   return (
-    <div className="text-center py-16 rounded-xl bg-card border border-border">
+    <div className="text-center py-16 rounded-2xl glass-card border border-border/50">
       <Icon className="h-12 w-12 text-muted-foreground/40 mx-auto mb-4" />
       <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
       <p className="text-muted-foreground mb-6">{desc}</p>
-      <Button onClick={onAction}><Plus className="h-4 w-4 mr-2" /> {actionText}</Button>
+      <Button variant="glow" onClick={onAction}><Plus className="h-4 w-4 mr-2" /> {actionText}</Button>
     </div>
   );
 }

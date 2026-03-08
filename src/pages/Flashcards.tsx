@@ -47,7 +47,6 @@ export default function Flashcards() {
       if (cardsRes.data) setCards(cardsRes.data);
       if (topicRes.data) setTopicTitle(topicRes.data.title);
 
-      // Get all step titles from roadmap
       const { data: roadmap } = await supabase.from('roadmaps').select('steps').eq('topic_id', topicId).single();
       if (roadmap?.steps) {
         const steps = roadmap.steps as any[];
@@ -101,7 +100,6 @@ export default function Flashcards() {
     );
   }
 
-  // Check if there's a roadmap for this topic
   const hasRoadmap = Object.keys(stepTitles).length > 0;
 
   if (cards.length === 0) {
@@ -118,15 +116,17 @@ export default function Flashcards() {
   const isAllCards = stepFilter === null;
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-background aurora-bg">
+      <nav className="border-b border-border/50 glass-nav sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
-            <span className="font-serif text-xl font-bold text-foreground">Luminar</span>
+            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center neon-glow-sm">
+              <BookOpen className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
           <div className="flex items-center gap-2">
-            {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block px-2 py-1 rounded-md bg-muted">{stepTitle}</span>}
+            {stepTitle && <span className="text-xs text-muted-foreground hidden sm:block px-2 py-1 rounded-md glass-card border border-border/50">{stepTitle}</span>}
             <Button variant="ghost" size="sm" onClick={() => navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard')}>
               <ArrowLeft className="h-4 w-4 mr-2" /> {hasRoadmap ? 'Back' : 'Dashboard'}
             </Button>
@@ -134,9 +134,11 @@ export default function Flashcards() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-10 max-w-2xl">
+      <main className="container mx-auto px-4 py-10 max-w-2xl relative z-10">
         <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">{topicTitle}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1 font-heading">
+            <span className="gradient-text">{topicTitle}</span>
+          </h1>
           <p className="text-muted-foreground">
             {isAllCards ? 'All Flashcards' : stepTitle}{' · '}Card {currentIndex + 1} of {cards.length}
           </p>
@@ -145,7 +147,6 @@ export default function Flashcards() {
         {/* Card */}
         <div className="flex justify-center mb-8">
           <div className="w-full max-w-lg cursor-pointer relative" onClick={() => setFlipped(!flipped)} style={{ perspective: '1000px' }}>
-            {/* Step badge - top right */}
             {isAllCards && currentCard.step_index !== null && (
               <button
                 onClick={(e) => {
@@ -161,14 +162,18 @@ export default function Flashcards() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={`${currentIndex}-${flipped}`}
-                className={`relative w-full min-h-[320px] rounded-2xl p-8 flex flex-col items-center justify-center text-center border-2 transition-colors ${flipped ? 'bg-primary/5 border-primary/30' : 'bg-card border-border'}`}
+                className={`relative w-full min-h-[320px] rounded-2xl p-8 flex flex-col items-center justify-center text-center border-2 transition-all ${
+                  flipped
+                    ? 'glass-card border-primary/30 shadow-[0_0_24px_-6px_hsl(var(--neon-cyan)/0.3)]'
+                    : 'glass-card border-border/50 hover:border-primary/20'
+                }`}
                 initial={{ rotateY: 90, opacity: 0 }}
                 animate={{ rotateY: 0, opacity: 1 }}
                 exit={{ rotateY: -90, opacity: 0 }}
                 transition={{ duration: 0.25 }}
               >
                 <span className="text-xs text-muted-foreground mb-4 uppercase tracking-wider">{flipped ? 'Answer' : 'Question'}</span>
-                <p className={`text-xl md:text-2xl leading-relaxed ${flipped ? 'text-foreground' : 'font-serif font-semibold text-foreground'}`}>
+                <p className={`text-xl md:text-2xl leading-relaxed ${flipped ? 'text-foreground' : 'font-heading font-semibold text-foreground'}`}>
                   {flipped ? currentCard.back : currentCard.front}
                 </p>
                 <p className="text-xs text-muted-foreground mt-6">{flipped ? 'Click to see question' : 'Click to reveal answer'}</p>
@@ -204,7 +209,7 @@ export default function Flashcards() {
             <button
               key={i}
               onClick={() => { setFlipped(false); setCurrentIndex(i); }}
-              className={`h-2 rounded-full transition-all ${i === currentIndex ? 'w-6 bg-primary' : 'w-2 bg-muted-foreground/30'}`}
+              className={`h-2 rounded-full transition-all ${i === currentIndex ? 'w-6 gradient-primary neon-glow-sm' : 'w-2 bg-muted-foreground/30'}`}
               title={isAllCards && card.step_index !== null ? `Step ${card.step_index + 1}` : undefined}
             />
           ))}

@@ -36,7 +36,6 @@ async function extractTextFromFile(file: File): Promise<string> {
     try {
       const pdfjsLib = (window as any).pdfjsLib;
       if (!pdfjsLib) {
-        // Load pdfjs from CDN
         await new Promise<void>((resolve, reject) => {
           const script = document.createElement('script');
           script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
@@ -72,7 +71,6 @@ async function extractTextFromFile(file: File): Promise<string> {
     }
   }
 
-  // Try reading as text for unknown types
   try {
     return await file.text();
   } catch {
@@ -95,7 +93,6 @@ export default function FlashcardCreator() {
   const [result, setResult] = useState<{ topicId: string; title: string; cardsGenerated: number } | null>(null);
   const [error, setError] = useState('');
   const [scopeInstructions, setScopeInstructions] = useState('');
-
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,7 +129,6 @@ export default function FlashcardCreator() {
         if (!url.trim()) throw new Error('Please enter a URL');
         const cleanUrl = url.trim().startsWith('http') ? url.trim() : `https://${url.trim()}`;
 
-        // YouTube URLs use the dedicated youtube-flashcards function (skips analyze step)
         if (isYouTubeUrl(cleanUrl)) {
           setStep('generating');
           const { data, error: fnError } = await supabase.functions.invoke('youtube-flashcards', {
@@ -187,7 +183,6 @@ export default function FlashcardCreator() {
     updated.topics[index] = { ...updated.topics[index], selected: !updated.topics[index].selected };
     setAnalysis(updated);
 
-    // Recalculate total
     const newTotal = updated.topics
       .filter((t) => t.selected)
       .reduce((sum, t) => sum + t.estimatedCards, 0);
@@ -228,11 +223,6 @@ export default function FlashcardCreator() {
         body.scope = scopeInstructions.trim();
       }
 
-      // If we only have URL content, also pass the URL
-      if (inputMode === 'url' && !extractedContent) {
-        // Re-fetch content via analyze endpoint won't work here, so we pass what we have
-      }
-
       const { data, error: fnError } = await supabase.functions.invoke('generate-document-flashcards', { body });
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
@@ -252,7 +242,7 @@ export default function FlashcardCreator() {
         {/* STEP 1: Input */}
         {step === 'input' && (
           <motion.div key="input" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
-            <h2 className="text-xl font-serif font-bold text-foreground mb-2">Create Flashcards</h2>
+            <h2 className="text-xl font-heading font-bold text-foreground mb-2">Create Flashcards</h2>
             <p className="text-muted-foreground mb-6">Upload a file, paste a URL, or enter text to generate flashcards.</p>
 
             {/* Mode Selector */}
@@ -265,10 +255,10 @@ export default function FlashcardCreator() {
                 <button
                   key={mode}
                   onClick={() => { setInputMode(mode); setError(''); }}
-                  className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  className={`flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
                     inputMode === mode
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border bg-card text-muted-foreground hover:border-primary/30'
+                      ? 'border-primary bg-primary/5 text-primary animate-neon-border'
+                      : 'border-border glass-card text-muted-foreground hover:border-primary/30'
                   }`}
                 >
                   <Icon className="h-5 w-5" />
@@ -289,7 +279,7 @@ export default function FlashcardCreator() {
                 />
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full p-8 rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-card hover:bg-primary/5 transition-all text-center"
+                  className="w-full p-8 rounded-2xl border-2 border-dashed border-border hover:border-primary/40 glass-card hover:bg-primary/5 transition-all text-center"
                 >
                   <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
                   <p className="text-foreground font-medium mb-1">
@@ -317,7 +307,7 @@ export default function FlashcardCreator() {
                   className="h-12"
                 />
                 {url && isYouTubeUrl(url) && (
-                  <p className="text-sm text-accent mt-2 flex items-center gap-1">
+                  <p className="text-sm text-secondary mt-2 flex items-center gap-1">
                     <Youtube className="h-4 w-4" /> YouTube detected — AI will generate flashcards from the video topic
                   </p>
                 )}
@@ -354,6 +344,7 @@ export default function FlashcardCreator() {
 
             <Button
               onClick={() => handleAnalyze()}
+              variant="glow"
               className="w-full mt-6 h-12"
               disabled={
                 (inputMode === 'file' && !extractedContent) ||
@@ -380,7 +371,7 @@ export default function FlashcardCreator() {
           <motion.div key="review" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-xl font-serif font-bold text-foreground">{analysis.title}</h2>
+                <h2 className="text-xl font-heading font-bold text-foreground">{analysis.title}</h2>
                 <p className="text-sm text-muted-foreground">{analysis.summary}</p>
               </div>
               <Button variant="ghost" size="sm" onClick={() => { setStep('input'); setAnalysis(null); }}>
@@ -393,8 +384,8 @@ export default function FlashcardCreator() {
               {analysis.topics.map((topic, i) => (
                 <div
                   key={i}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    topic.selected ? 'border-primary/30 bg-primary/5' : 'border-border bg-card opacity-60'
+                  className={`p-4 rounded-2xl border-2 transition-all ${
+                    topic.selected ? 'border-primary/30 glass-card' : 'border-border glass-card opacity-60'
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
@@ -428,7 +419,7 @@ export default function FlashcardCreator() {
             </div>
 
             {/* Card count adjuster */}
-            <div className="p-5 rounded-xl bg-card border border-border mb-6">
+            <div className="p-5 rounded-2xl glass-card border border-border/50 mb-6">
               <p className="text-sm font-medium text-foreground mb-3">Total flashcards to generate</p>
               <div className="flex items-center justify-center gap-4">
                 <Button variant="outline" size="icon" onClick={() => setTotalCards(Math.max(5, totalCards - 5))}>
@@ -450,7 +441,7 @@ export default function FlashcardCreator() {
               </p>
             )}
 
-            <Button onClick={handleGenerate} className="w-full h-12">
+            <Button onClick={handleGenerate} variant="glow" className="w-full h-12">
               <Sparkles className="h-4 w-4 mr-2" /> Generate {totalCards} Flashcards
               <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
@@ -472,11 +463,11 @@ export default function FlashcardCreator() {
             <div className="h-16 w-16 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-4">
               <Check className="h-8 w-8 text-success" />
             </div>
-            <h3 className="text-2xl font-serif font-bold text-foreground mb-2">Flashcards Ready!</h3>
+            <h3 className="text-2xl font-heading font-bold text-foreground mb-2">Flashcards Ready!</h3>
             <p className="text-muted-foreground mb-1">{result.title}</p>
             <p className="text-sm text-muted-foreground mb-8">{result.cardsGenerated} cards generated</p>
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
-              <Button onClick={() => navigate(`/flashcards/${result.topicId}`)} className="h-12">
+              <Button onClick={() => navigate(`/flashcards/${result.topicId}`)} variant="glow" className="h-12">
                 <Sparkles className="h-4 w-4 mr-2" /> Study Flashcards
               </Button>
               <Button variant="outline" onClick={() => {

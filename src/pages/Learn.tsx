@@ -168,7 +168,6 @@ export default function Learn() {
     try {
       const body: any = { topic: trimmed };
       if (extractedContent && extractedContent.length > 50) {
-        // Send first 15000 chars of source content
         body.sourceContent = extractedContent.slice(0, 15000);
       }
 
@@ -193,11 +192,13 @@ export default function Learn() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+    <div className="min-h-screen bg-background aurora-bg">
+      <nav className="border-b border-border/50 glass-nav sticky top-0 z-50">
         <div className="container mx-auto flex items-center justify-between h-16 px-4">
           <div className="flex items-center gap-2">
-            <BookOpen className="h-6 w-6 text-primary" />
+            <div className="h-8 w-8 rounded-lg gradient-primary flex items-center justify-center neon-glow-sm">
+              <BookOpen className="h-4 w-4 text-primary-foreground" />
+            </div>
             <span className="font-heading text-xl font-bold text-foreground">Luminar</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
@@ -206,18 +207,18 @@ export default function Learn() {
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-16 max-w-2xl">
+      <main className="container mx-auto px-4 py-16 max-w-2xl relative z-10">
         <motion.div
           className="text-center mb-12"
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-6 border border-primary/20">
             <Brain className="h-8 w-8 text-primary" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            What do you want to learn?
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3 font-heading">
+            What do you want to <span className="gradient-text">learn</span>?
           </h1>
           <p className="text-muted-foreground text-lg">
             Enter a topic or add source material (PDF, URL, YouTube) for a customized roadmap.
@@ -243,7 +244,7 @@ export default function Learn() {
                 onClick={() => setShowSourcePanel(!showSourcePanel)}
                 className={`absolute left-3 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg flex items-center justify-center transition-all z-10 ${
                   showSourcePanel || hasSource
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'gradient-primary text-primary-foreground neon-glow-sm'
                     : 'bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary'
                 }`}
                 title="Add source material"
@@ -254,12 +255,12 @@ export default function Learn() {
                 placeholder="e.g. Machine Learning, Ancient Rome, Guitar..."
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="text-base py-6 pl-14"
+                className="text-base py-6 pl-14 focus:border-primary/50 focus:ring-primary/30"
                 disabled={loading}
                 maxLength={200}
               />
             </div>
-            <Button type="submit" size="lg" className="px-6 py-6 gradient-primary border-0 shadow-glow hover:opacity-90" disabled={loading}>
+            <Button type="submit" size="lg" variant="glow" className="px-6 py-6" disabled={loading}>
               {loading ? (
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
@@ -275,7 +276,7 @@ export default function Learn() {
               animate={{ opacity: 1, height: 'auto' }}
               className="mb-4"
             >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-accent/10 text-accent text-sm border border-accent/20">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/10 text-secondary text-sm border border-secondary/20">
                 {fileName ? <FileText className="h-3.5 w-3.5" /> : sourceUrl && isYouTubeUrl(sourceUrl) ? <Youtube className="h-3.5 w-3.5" /> : sourceUrl ? <Link className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
                 <span className="font-medium">
                   {fileName || (sourceUrl ? (sourceUrl.length > 40 ? sourceUrl.slice(0, 40) + '...' : sourceUrl) : 'Text source attached')}
@@ -297,7 +298,7 @@ export default function Learn() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden mb-6"
               >
-                <div className="p-5 rounded-2xl bg-card border border-border">
+                <div className="p-5 rounded-2xl glass-card border border-border/50">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="font-heading font-semibold text-foreground">Add Source Material</h3>
                     <button onClick={() => setShowSourcePanel(false)} className="text-muted-foreground hover:text-foreground transition-colors">
@@ -317,7 +318,7 @@ export default function Learn() {
                         onClick={() => { setSourceType(type); setSourceError(''); }}
                         className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-all text-sm font-medium ${
                           sourceType === type
-                            ? 'border-primary bg-primary/5 text-primary'
+                            ? 'border-primary bg-primary/5 text-primary animate-neon-border'
                             : 'border-border bg-background text-muted-foreground hover:border-primary/30'
                         }`}
                       >
@@ -339,7 +340,7 @@ export default function Learn() {
                       />
                       <button
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-full p-6 rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-background hover:bg-primary/5 transition-all text-center"
+                        className="w-full p-6 rounded-xl border-2 border-dashed border-border hover:border-primary/40 bg-background/50 hover:bg-primary/5 transition-all text-center"
                       >
                         {loadingSource ? (
                           <Loader2 className="h-6 w-6 text-primary animate-spin mx-auto mb-2" />
@@ -372,7 +373,7 @@ export default function Learn() {
                         </Button>
                       </div>
                       {sourceUrl && isYouTubeUrl(sourceUrl) && !extractedContent && (
-                        <p className="text-sm text-accent mt-2 flex items-center gap-1">
+                        <p className="text-sm text-secondary mt-2 flex items-center gap-1">
                           <Youtube className="h-4 w-4" /> YouTube detected — AI will generate content from the video topic
                         </p>
                       )}
@@ -437,7 +438,7 @@ export default function Learn() {
                       setTopic(s);
                       handleGenerate(s);
                     }}
-                    className="px-4 py-2 rounded-full bg-card border border-border text-sm text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
+                    className="px-4 py-2 rounded-full glass-card border border-border/50 text-sm text-foreground hover:border-primary/30 hover:bg-primary/5 transition-all"
                   >
                     {s}
                   </button>
