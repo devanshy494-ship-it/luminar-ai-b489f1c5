@@ -7,6 +7,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface RoadmapWithTopic {
   id: string;
@@ -51,6 +62,7 @@ export default function Dashboard() {
   const [quizResults, setQuizResults] = useState<QuizResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFirstVisit, setIsFirstVisit] = useState(true);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -127,9 +139,27 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-1">
             <ThemeToggle />
-            <Button variant="ghost" size="sm" onClick={() => { signOut(); navigate('/'); }}>
-              <LogOut className="h-4 w-4 mr-2" /> Sign Out
-            </Button>
+            <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+              <AlertDialogTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" /> Sign Out
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Sign out of Luminar?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to sign out? You can sign back in anytime with your Google account to access your progress.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={async () => { await signOut(); navigate('/'); }}>
+                    Sign Out
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       </nav>
