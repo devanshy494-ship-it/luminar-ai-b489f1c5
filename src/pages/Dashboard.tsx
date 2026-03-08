@@ -197,18 +197,12 @@ export default function Dashboard() {
             <h3 className="font-serif font-bold text-foreground mb-1">New Roadmap</h3>
             <p className="text-sm text-muted-foreground">Enter a topic & get a learning path</p>
           </button>
-          <button onClick={() => {
-            setActiveTab("flashcards");
-            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
+          <button onClick={() => switchTabFromAction("flashcards")} className="group p-6 rounded-xl bg-accent/5 border border-accent/20 hover:border-accent/40 hover:bg-accent/10 transition-all text-left">
             <Sparkles className="h-8 w-8 text-accent mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Flashcards</h3>
             <p className="text-sm text-muted-foreground">Generate from any document or URL</p>
           </button>
-          <button onClick={() => {
-            setActiveTab("quizzes");
-            setTimeout(() => document.getElementById('dashboard-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-          }} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
+          <button onClick={() => switchTabFromAction("quizzes")} className="group p-6 rounded-xl bg-warning/5 border border-warning/20 hover:border-warning/40 hover:bg-warning/10 transition-all text-left">
             <Target className="h-8 w-8 text-warning mb-3" />
             <h3 className="font-serif font-bold text-foreground mb-1">Take a Quiz</h3>
             <p className="text-sm text-muted-foreground">Test your knowledge</p>
