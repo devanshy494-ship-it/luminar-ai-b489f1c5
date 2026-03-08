@@ -3,6 +3,7 @@ import { BookOpen, Brain, Zap, ArrowRight, Sparkles, Target, BarChart3 } from 'l
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const features = [
   {
