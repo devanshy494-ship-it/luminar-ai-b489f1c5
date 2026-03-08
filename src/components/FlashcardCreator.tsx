@@ -94,6 +94,8 @@ export default function FlashcardCreator() {
   const [totalCards, setTotalCards] = useState(0);
   const [result, setResult] = useState<{ topicId: string; title: string; cardsGenerated: number } | null>(null);
   const [error, setError] = useState('');
+  const [showYtFallback, setShowYtFallback] = useState(false);
+  const [ytManualTranscript, setYtManualTranscript] = useState('');
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
