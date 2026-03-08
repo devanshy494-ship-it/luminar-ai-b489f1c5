@@ -125,7 +125,13 @@ export default function Roadmap() {
       try {
         const step = roadmap.steps[index];
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
-          body: { topicTitle: topic.title, stepTitle: step.title, stepDescription: step.description },
+          body: {
+            topicTitle: topic.title,
+            stepTitle: step.title,
+            stepDescription: step.description,
+            ...(minWords ? { minWords: Number(minWords) } : {}),
+            ...(maxWords ? { maxWords: Number(maxWords) } : {}),
+          },
         });
         if (error) throw error;
         if (data?.error) { toast.error(data.error); return; }
