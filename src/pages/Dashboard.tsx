@@ -147,6 +147,9 @@ export default function Dashboard() {
 
     supabase.from('quiz_results').select('id, topic_id, score, total, step_index, wrong_questions, questions, completed_at, topics(title)').eq('user_id', user.id).order('completed_at', { ascending: false })
       .then(({ data }) => { setQuizResults((data as any) || []); setLoadingQuizzes(false); });
+
+    supabase.from('mindmaps').select('id, topic, created_at').eq('user_id', user.id).order('created_at', { ascending: false })
+      .then(({ data }) => { setMindmaps((data as any) || []); setLoadingMindmaps(false); });
   };
 
   useEffect(() => { fetchAll(); }, [user]);
