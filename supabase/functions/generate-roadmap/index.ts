@@ -53,7 +53,16 @@ Each step should have:
 - A clear, specific title (not vague like "Introduction" — be specific about what is covered)
 - A detailed description (3-5 sentences) explaining what the learner will study, key concepts, and why it matters
 - A realistic estimated time (e.g. "2-3 hours", "1 week")
-- 2-4 specific learning resources (e.g. "Official documentation", "Practice exercises", "Video tutorials on X")
+- 3-5 specific learning resources, each with a name, a REAL working URL, and a type
+
+RESOURCE GUIDELINES — THIS IS CRITICAL:
+- Provide REAL, SPECIFIC URLs that actually exist. Use well-known websites.
+- For videos: Use real YouTube video or channel URLs (e.g. https://www.youtube.com/watch?v=..., https://www.youtube.com/@channelname)
+- For docs: Use official documentation URLs (e.g. MDN, official project docs, W3Schools)
+- For websites: Use real article/tutorial URLs from sites like freeCodeCamp, GeeksforGeeks, Medium, dev.to, Khan Academy
+- For exercises: Use real practice platform URLs (LeetCode, HackerRank, Exercism, Codecademy)
+- Resource types must be one of: "video", "website", "docs", "exercise"
+- NEVER use placeholder or made-up URLs. Only provide URLs you are confident exist.
 
 Make the roadmap progressive — each step should build on the previous one. Include both theoretical knowledge and practical application steps. For complex topics, break them into granular sub-topics rather than broad categories.${hasSource ? "\n\nIMPORTANT: Use the provided source material to create a highly relevant and specific roadmap. Extract key concepts, terminology, and structure from the source content to make the roadmap deeply aligned with the material." : ""}`;
 
@@ -94,7 +103,16 @@ Make the roadmap progressive — each step should build on the previous one. Inc
                         estimatedTime: { type: "string" },
                         resources: {
                           type: "array",
-                          items: { type: "string" },
+                          items: {
+                            type: "object",
+                            properties: {
+                              name: { type: "string", description: "Display name of the resource" },
+                              url: { type: "string", description: "Real, working URL to the resource" },
+                              type: { type: "string", enum: ["video", "website", "docs", "exercise"], description: "Type of resource" },
+                            },
+                            required: ["name", "url", "type"],
+                            additionalProperties: false,
+                          },
                         },
                       },
                       required: ["title", "description", "estimatedTime"],

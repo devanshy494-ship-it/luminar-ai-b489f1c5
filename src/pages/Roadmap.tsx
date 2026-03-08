@@ -1,17 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
+interface Resource {
+  name: string;
+  url: string;
+  type: 'video' | 'website' | 'docs' | 'exercise';
+}
+
 interface Step {
   title: string;
   description: string;
   estimatedTime: string;
-  resources?: string[];
+  resources?: (string | Resource)[];
   completed: boolean;
   order: number;
 }
@@ -292,9 +298,27 @@ export default function Roadmap() {
                       <p className="text-muted-foreground text-sm leading-relaxed">{step.description}</p>
                       {step.resources && step.resources.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
-                          {step.resources.map((r, ri) => (
-                            <span key={ri} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">{r}</span>
-                          ))}
+                          {step.resources.map((r, ri) => {
+                            if (typeof r === 'string') {
+                              return <span key={ri} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">{r}</span>;
+                            }
+                            const resource = r as Resource;
+                            const Icon = resource.type === 'video' ? Play : resource.type === 'docs' ? FileText : resource.type === 'exercise' ? Dumbbell : ExternalLink;
+                            const colorClass = resource.type === 'video' ? 'text-destructive bg-destructive/10 hover:bg-destructive/20' : resource.type === 'docs' ? 'text-primary bg-primary/10 hover:bg-primary/20' : resource.type === 'exercise' ? 'text-accent bg-accent/10 hover:bg-accent/20' : 'text-muted-foreground bg-muted hover:bg-muted/80';
+                            return (
+                              <a
+                                key={ri}
+                                href={resource.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-md font-medium transition-colors ${colorClass}`}
+                              >
+                                <Icon className="h-3 w-3" />
+                                {resource.name}
+                                <ExternalLink className="h-2.5 w-2.5 opacity-50" />
+                              </a>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

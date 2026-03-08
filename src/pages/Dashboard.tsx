@@ -302,6 +302,7 @@ export default function Dashboard() {
                 transition={{ duration: 0.4, ease: 'easeOut' }}
                 className={highlightTab && activeTab === 'quizzes' ? 'ring-2 ring-primary/30 rounded-2xl p-1 transition-all duration-700' : ''}
               >
+              {loadingQuizzes ? (
                 <div className="grid gap-3">{[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />)}</div>
               ) : Object.keys(quizByTopic).length > 0 ? (
                 <div className="space-y-6">
@@ -347,6 +348,7 @@ export default function Dashboard() {
               ) : (
                 <EmptyState icon={Target} title="No quizzes yet" desc="Take a quiz from your roadmap to test your knowledge" onAction={() => navigate('/learn')} actionText="Start Learning" />
               )}
+              </motion.div>
             </TabsContent>
 
             {/* History Tab */}
