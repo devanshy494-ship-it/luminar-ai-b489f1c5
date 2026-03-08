@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal, Download } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, Circle, Sparkles, Target, Loader2, ChevronDown, ChevronUp, GraduationCap, Lightbulb, Search, Plus, Layers, ExternalLink, Play, FileText, Dumbbell, Library, Globe, Smartphone, MoreHorizontal, Download, Settings2, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -76,6 +76,16 @@ export default function Roadmap() {
   const [showExtraMaterials, setShowExtraMaterials] = useState<number | null>(null);
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportStepIndex, setExportStepIndex] = useState<number | null>(null);
+  const [minWords, setMinWords] = useState<number | ''>('');
+  const [maxWords, setMaxWords] = useState<number | ''>('');
+  const [showWordSettings, setShowWordSettings] = useState(false);
+
+  // Calculate total word count across all generated lessons
+  const totalWordCount = Object.values(lessons).reduce((total, lesson) => {
+    const sectionWords = lesson.sections.reduce((sum, s) => sum + s.content.split(/\s+/).filter(Boolean).length + s.heading.split(/\s+/).filter(Boolean).length, 0);
+    const takeawayWords = lesson.keyTakeaways.reduce((sum, t) => sum + t.split(/\s+/).filter(Boolean).length, 0);
+    return total + sectionWords + takeawayWords;
+  }, 0);
 
   useEffect(() => {
     async function fetchData() {
@@ -115,7 +125,13 @@ export default function Roadmap() {
       try {
         const step = roadmap.steps[index];
         const { data, error } = await supabase.functions.invoke('generate-lesson', {
-          body: { topicTitle: topic.title, stepTitle: step.title, stepDescription: step.description },
+          body: {
+            topicTitle: topic.title,
+            stepTitle: step.title,
+            stepDescription: step.description,
+            ...(minWords ? { minWords: Number(minWords) } : {}),
+            ...(maxWords ? { maxWords: Number(maxWords) } : {}),
+          },
         });
         if (error) throw error;
         if (data?.error) { toast.error(data.error); return; }
@@ -330,8 +346,72 @@ export default function Roadmap() {
             stepIndex={exportStepIndex}
           />
 
+          {/* Word Limit Settings */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowWordSettings(!showWordSettings)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors mb-3"
+            >
+              <Settings2 className="h-4 w-4" />
+              <span>Lesson Word Limit</span>
+              {(minWords || maxWords) && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {minWords && maxWords ? `${minWords}–${maxWords}` : minWords ? `≥${minWords}` : `≤${maxWords}`} words
+                </span>
+              )}
+              <ChevronDown className={`h-3 w-3 transition-transform ${showWordSettings ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showWordSettings && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex flex-wrap items-center gap-3 p-3 rounded-xl border border-border/50 glass-card">
+                    <Type className="h-4 w-4 text-muted-foreground" />
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Min</label>
+                      <input
+                        type="number"
+                        value={minWords}
+                        onChange={(e) => setMinWords(e.target.value ? Number(e.target.value) : '')}
+                        placeholder="e.g. 300"
+                        min={50}
+                        className="w-24 px-2 py-1.5 rounded-lg border border-border/50 bg-background/50 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label className="text-xs text-muted-foreground">Max</label>
+                      <input
+                        type="number"
+                        value={maxWords}
+                        onChange={(e) => setMaxWords(e.target.value ? Number(e.target.value) : '')}
+                        placeholder="e.g. 1000"
+                        min={50}
+                        className="w-24 px-2 py-1.5 rounded-lg border border-border/50 bg-background/50 text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    {(minWords || maxWords) && (
+                      <button
+                        onClick={() => { setMinWords(''); setMaxWords(''); }}
+                        className="text-xs text-muted-foreground hover:text-foreground underline"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1.5 ml-1">
+                    Sets the word limit per step lesson. Only applies to newly generated lessons.
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Progress Bar */}
-          <div className="mb-10">
+          <div className="mb-6">
             <div className="flex items-center justify-between text-sm mb-2">
               <span className="text-muted-foreground">Progress</span>
               <span className="font-semibold text-foreground">{roadmap.progress}%</span>
@@ -340,6 +420,15 @@ export default function Roadmap() {
               <motion.div className="h-full gradient-primary rounded-full neon-glow-sm" initial={{ width: 0 }} animate={{ width: `${roadmap.progress}%` }} transition={{ duration: 0.5 }} />
             </div>
           </div>
+
+          {/* Total Word Count */}
+          {totalWordCount > 0 && (
+            <div className="mb-10 flex items-center gap-2 text-sm text-muted-foreground">
+              <FileText className="h-4 w-4" />
+              <span>Total content generated: <strong className="text-foreground">{totalWordCount.toLocaleString()} words</strong></span>
+              <span className="text-xs">({Object.keys(lessons).length} of {roadmap.steps.length} lessons)</span>
+            </div>
+          )}
 
           {/* Steps */}
           <div className="space-y-4">

@@ -17,13 +17,17 @@ serve(async (req) => {
       });
     }
 
-    const { topicTitle, stepTitle, stepDescription } = await req.json();
+    const { topicTitle, stepTitle, stepDescription, minWords, maxWords } = await req.json();
     if (!topicTitle || !stepTitle) {
       return new Response(JSON.stringify({ error: "topicTitle and stepTitle are required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const wordLimitInstruction = minWords || maxWords
+      ? `\n\nIMPORTANT WORD LIMIT: The total lesson content (all sections combined) must be ${minWords ? `at least ${minWords} words` : ''}${minWords && maxWords ? ' and ' : ''}${maxWords ? `no more than ${maxWords} words` : ''}. Adjust the depth and number of examples accordingly to meet this requirement.`
+      : '';
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -39,7 +43,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `You are an expert educator. Generate a comprehensive, beginner-friendly lesson for a specific step in a learning roadmap. The lesson should be detailed, engaging, and include practical examples. Use clear explanations and break down complex concepts.`,
+            content: `You are an expert educator. Generate a comprehensive, beginner-friendly lesson for a specific step in a learning roadmap. The lesson should be detailed, engaging, and include practical examples. Use clear explanations and break down complex concepts.${wordLimitInstruction}`,
           },
           {
             role: "user",
