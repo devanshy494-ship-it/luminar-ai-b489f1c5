@@ -129,7 +129,7 @@ export default function Landing() {
       </section>
 
       {/* Features */}
-      <section id="features" className="py-24 px-4 relative">
+      <section id="features" className="py-24 px-4 relative scroll-mt-20">
         <div className="container mx-auto max-w-6xl relative z-10">
           <motion.div
             className="text-center mb-16"
