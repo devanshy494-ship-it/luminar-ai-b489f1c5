@@ -158,6 +158,34 @@ export default function Learn() {
     setSourceError('');
   };
 
+  const handleGenerateMindmap = async (topicText: string) => {
+    const trimmed = topicText.trim();
+    if (!trimmed) {
+      toast.error('Please enter a topic');
+      return;
+    }
+
+    setLoadingMindmap(true);
+    try {
+      const body: any = { topic: trimmed };
+      if (extractedContent && extractedContent.length > 50) {
+        body.sourceContent = extractedContent.slice(0, 15000);
+      }
+
+      const { data, error } = await supabase.functions.invoke('generate-mindmap', { body });
+      if (error) throw error;
+      if (data?.error) { toast.error(data.error); return; }
+
+      toast.success('Mindmap generated!');
+      navigate('/mindmap', { state: { mindmap: data.mindmap, fromTopic: trimmed } });
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Failed to generate mindmap');
+    } finally {
+      setLoadingMindmap(false);
+    }
+  };
+
   const handleGenerate = async (topicText: string) => {
     const trimmed = topicText.trim();
     if (!trimmed) {
