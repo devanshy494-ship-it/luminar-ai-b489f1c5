@@ -64,7 +64,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { topicTitle, stepTitle, stepDescription } = await req.json();
+    const { topicTitle, stepTitle, stepDescription, stepIndex, totalSteps, allSteps, generationContext } = await req.json();
     if (!topicTitle || !stepTitle) {
       return new Response(JSON.stringify({ error: "Missing topicTitle or stepTitle" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
