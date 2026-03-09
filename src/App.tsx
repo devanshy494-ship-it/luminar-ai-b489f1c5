@@ -17,6 +17,7 @@ import MyMindmaps from "./pages/MyMindmaps";
 import MyFlashcards from "./pages/MyFlashcards";
 import MyQuizzes from "./pages/MyQuizzes";
 import Admin from "./pages/Admin";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
