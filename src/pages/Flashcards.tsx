@@ -299,7 +299,7 @@ export default function Flashcards() {
                       label: 'Undo',
                       onClick: async () => {
                         const { data } = await supabase.from('flashcards').insert({
-                          topic_id: deletedCard.topic_id || topicId!,
+                          topic_id: topicId!,
                           user_id: user!.id,
                           front: deletedCard.front,
                           back: deletedCard.back,
