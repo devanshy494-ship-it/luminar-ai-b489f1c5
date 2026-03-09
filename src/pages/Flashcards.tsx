@@ -270,14 +270,19 @@ export default function Flashcards() {
         {/* Controls */}
         <div className="flex items-center justify-center gap-4">
           {pendingDelete ? (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card border border-destructive/30">
-              <span className="text-sm text-destructive font-medium">Delete this card?</span>
+            <>
+              <Button variant="outline" size="lg" onClick={goPrev} disabled={currentIndex === 0}>
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <span className="text-sm text-destructive font-medium whitespace-nowrap">Too easy?</span>
               <Button
                 variant="outline"
-                size="sm"
-                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                size="lg"
+                className="border-destructive/30 text-destructive hover:bg-destructive/10 min-w-[44px]"
                 onClick={async () => {
                   const cardId = currentCard.id;
+                  const deletedCard = { ...currentCard };
+                  const deletedIndex = currentIndex;
                   await supabase.from('flashcards').delete().eq('id', cardId);
                   const newCards = cards.filter(c => c.id !== cardId);
                   setCards(newCards);
@@ -289,15 +294,41 @@ export default function Flashcards() {
                   }
                   if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
                   setFlipped(false);
-                  toast.success('Card deleted');
+                  toast('Card deleted', {
+                    action: {
+                      label: 'Undo',
+                      onClick: async () => {
+                        const { data } = await supabase.from('flashcards').insert({
+                          topic_id: topicId!,
+                          user_id: user!.id,
+                          front: deletedCard.front,
+                          back: deletedCard.back,
+                          mastery_level: deletedCard.mastery_level,
+                          step_index: deletedCard.step_index,
+                          group_id: deletedCard.group_id,
+                        }).select().single();
+                        if (data) {
+                          const restored = [...newCards];
+                          restored.splice(deletedIndex, 0, data);
+                          setCards(restored);
+                          setCurrentIndex(deletedIndex);
+                          toast.success('Card restored');
+                        }
+                      },
+                    },
+                    duration: 6000,
+                  });
                 }}
               >
-                <Check className="h-4 w-4" />
+                <Check className="h-5 w-5" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setPendingDelete(false)}>
-                <X className="h-4 w-4" />
+              <Button variant="outline" size="lg" onClick={() => setPendingDelete(false)}>
+                <X className="h-5 w-5" />
               </Button>
-            </div>
+              <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
           ) : (
             <>
               <Button variant="outline" size="lg" onClick={goPrev} disabled={currentIndex === 0}>
@@ -315,6 +346,8 @@ export default function Flashcards() {
                     return;
                   }
                   const cardId = currentCard.id;
+                  const deletedCard = { ...currentCard };
+                  const deletedIndex = currentIndex;
                   await supabase.from('flashcards').delete().eq('id', cardId);
                   const newCards = cards.filter(c => c.id !== cardId);
                   setCards(newCards);
@@ -325,7 +358,30 @@ export default function Flashcards() {
                   }
                   if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
                   setFlipped(false);
-                  toast.success('Card deleted');
+                  toast('Card deleted', {
+                    action: {
+                      label: 'Undo',
+                      onClick: async () => {
+                        const { data } = await supabase.from('flashcards').insert({
+                          topic_id: topicId!,
+                          user_id: user!.id,
+                          front: deletedCard.front,
+                          back: deletedCard.back,
+                          mastery_level: deletedCard.mastery_level,
+                          step_index: deletedCard.step_index,
+                          group_id: deletedCard.group_id,
+                        }).select().single();
+                        if (data) {
+                          const restored = [...cards];
+                          restored.splice(deletedIndex, 0, data);
+                          setCards(restored);
+                          setCurrentIndex(deletedIndex);
+                          toast.success('Card restored');
+                        }
+                      },
+                    },
+                    duration: 6000,
+                  });
                 }}
                 className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
                 title="Delete this card (too easy)"
