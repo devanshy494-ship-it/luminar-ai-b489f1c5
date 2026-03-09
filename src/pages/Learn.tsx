@@ -77,6 +77,8 @@ export default function Learn() {
   const [extractedContent, setExtractedContent] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [loadingSource, setLoadingSource] = useState(false);
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   // New: pending generation type — when set, show mode selection
   const [pendingGenType, setPendingGenType] = useState<'roadmap' | 'mindmap' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
