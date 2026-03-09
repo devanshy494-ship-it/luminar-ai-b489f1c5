@@ -113,7 +113,7 @@ export default function Dashboard() {
       const groups: FlashcardGroup[] = (fg.data as any) || [];
       const ungrouped = (ungroupedFc.data as any) || [];
       if (ungrouped.length > 0) {
-        const topicMap = new Map<string, { count: number; created_at: string }>();
+        const topicMap: Record<string, { count: number; created_at: string }> = {};
         for (const fc of ungrouped) {
           const existing = topicMap.get(fc.topic_id);
           if (!existing) {
