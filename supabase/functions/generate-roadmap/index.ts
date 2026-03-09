@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    const { topic, sourceContent, strictMode } = await req.json();
+    const { topic, sourceContent, strictMode, additionalInfo } = await req.json();
     if (!topic || typeof topic !== "string" || topic.trim().length === 0 || topic.length > 200) {
       return new Response(JSON.stringify({ error: "Invalid topic" }), {
         status: 400,
@@ -138,6 +138,11 @@ serve(async (req) => {
         ? `\n\nIMPORTANT: Use the provided source material to create a highly relevant roadmap aligned with the material. You may supplement with additional knowledge to fill gaps and ensure comprehensive coverage.`
         : "";
 
+    const hasAdditionalInfo = additionalInfo && typeof additionalInfo === "string" && additionalInfo.trim().length > 0;
+    const additionalInstruction = hasAdditionalInfo
+      ? `\n\nADDITIONAL USER INSTRUCTIONS: The user has provided the following instructions about what to include, exclude, or focus on in the roadmap. Follow these carefully:\n"${additionalInfo.trim().slice(0, 1000)}"`
+      : "";
+
     const systemPrompt = `You are an expert learning roadmap generator. Given a topic${hasSource ? " and source material" : ""}, create a comprehensive learning roadmap with ${isStrict ? "4-12" : "8-12"} steps from beginner to advanced.
 
 Each step must have:
@@ -152,7 +157,7 @@ For suggestedResources:
 - Types: "website", "docs", "exercise"
 - Do NOT include video resources here — videos will be found via live YouTube search
 
-Make the roadmap progressive — each step builds on the previous one.${strictInstruction}`;
+Make the roadmap progressive — each step builds on the previous one.${strictInstruction}${additionalInstruction}`;
 
     const userContent = hasSource
       ? `Create a learning roadmap for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`

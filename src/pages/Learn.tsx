@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle, GitBranch } from 'lucide-react';
+import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle, GitBranch, SlidersHorizontal, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -77,6 +77,8 @@ export default function Learn() {
   const [extractedContent, setExtractedContent] = useState('');
   const [sourceError, setSourceError] = useState('');
   const [loadingSource, setLoadingSource] = useState(false);
+  const [additionalInfo, setAdditionalInfo] = useState('');
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   // New: pending generation type — when set, show mode selection
   const [pendingGenType, setPendingGenType] = useState<'roadmap' | 'mindmap' | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -203,6 +205,9 @@ export default function Learn() {
       if (extractedContent && extractedContent.length > 50) {
         body.sourceContent = extractedContent.slice(0, 15000);
         body.strictMode = strictMode;
+      }
+      if (additionalInfo.trim()) {
+        body.additionalInfo = additionalInfo.trim();
       }
 
       const { data, error } = await supabase.functions.invoke('generate-roadmap', {
@@ -542,6 +547,55 @@ export default function Learn() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Additional Information for Roadmap */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>Additional Instructions</span>
+              {additionalInfo.trim() && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Added</span>
+              )}
+              <ChevronDown className={`h-3 w-3 transition-transform ${showAdditionalInfo ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showAdditionalInfo && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 p-4 rounded-2xl glass-card border border-border/50">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Specify what to include, exclude, focus on, or any scope details for the roadmap.
+                    </p>
+                    <Textarea
+                      placeholder="e.g. Focus only on frontend technologies, exclude backend. Include React and TypeScript but not Angular. Keep it beginner-friendly..."
+                      value={additionalInfo}
+                      onChange={(e) => setAdditionalInfo(e.target.value)}
+                      rows={3}
+                      className="resize-none text-sm"
+                      maxLength={1000}
+                    />
+                    {additionalInfo.trim() && (
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => setAdditionalInfo('')}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {loading && (
             <motion.div
