@@ -3,12 +3,23 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { lovable } from '@/integrations/lovable/index';
 
+interface GuestUser {
+  id: string;
+  name: string;
+  isGuest: true;
+}
+
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  guestUser: GuestUser | null;
+  isAuthenticated: boolean;
   loading: boolean;
   isAdmin: boolean;
   signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signUpWithEmail: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signInAsGuest: (name: string) => void;
   signOut: () => Promise<void>;
 }
 
@@ -17,6 +28,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [guestUser, setGuestUser] = useState<GuestUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -60,20 +72,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-
     if (result.error) {
       return { error: result.error as Error };
     }
-
     return { error: null };
   };
 
+  const signInWithEmail = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error as Error };
+    return { error: null };
+  };
+
+  const signUpWithEmail = async (email: string, password: string, fullName: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { full_name: fullName },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) return { error: error as Error };
+    return { error: null };
+  };
+
+  const signInAsGuest = (name: string) => {
+    const guest: GuestUser = {
+      id: `guest-${Date.now()}`,
+      name,
+      isGuest: true,
+    };
+    setGuestUser(guest);
+  };
+
   const signOut = async () => {
+    if (guestUser) {
+      setGuestUser(null);
+      return;
+    }
     await supabase.auth.signOut();
   };
 
+  const isAuthenticated = !!user || !!guestUser;
+
   return (
-    <AuthContext.Provider value={{ session, user, loading, isAdmin, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{
+      session, user, guestUser, isAuthenticated, loading, isAdmin,
+      signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );
