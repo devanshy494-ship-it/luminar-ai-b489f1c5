@@ -597,6 +597,7 @@ export default function Learn() {
             </AnimatePresence>
           </div>
 
+          {loading && (
             <motion.div
               className="text-center py-12"
               initial={{ opacity: 0 }}
