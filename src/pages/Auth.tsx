@@ -18,6 +18,9 @@ export default function Auth() {
   const [fullName, setFullName] = useState('');
   const [guestName, setGuestName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
   const navigate = useNavigate();
   const { user, guestUser, isAdmin, signInWithEmail, signUpWithEmail, signInWithGoogle, signInAsGuest } = useAuth();
 
