@@ -343,6 +343,29 @@ export default function Flashcards() {
           >
             <Download className="h-4 w-4 mr-2" /> Export to Anki
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const escapeCsv = (s: string) => {
+                if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+                  return `"${s.replace(/"/g, '""')}"`;
+                }
+                return s;
+              };
+              const rows = ['Front,Back', ...cards.map(c => `${escapeCsv(c.front)},${escapeCsv(c.back)}`)];
+              const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `${topicTitle || 'flashcards'}-flashcards.csv`;
+              a.click();
+              URL.revokeObjectURL(url);
+              toast.success(`Exported ${cards.length} cards as CSV`);
+            }}
+          >
+            <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
         </div>
 
         {/* Progress dots */}

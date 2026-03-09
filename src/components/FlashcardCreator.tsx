@@ -468,7 +468,77 @@ export default function FlashcardCreator() {
             </div>
             <h3 className="text-2xl font-heading font-bold text-foreground mb-2">Flashcards Ready!</h3>
             <p className="text-muted-foreground mb-1">{result.title}</p>
-            <p className="text-sm text-muted-foreground mb-8">{result.cardsGenerated} cards generated</p>
+            <p className="text-sm text-muted-foreground mb-6">{result.cardsGenerated} cards generated</p>
+
+            {/* Add More Cards section */}
+            {showAddMore ? (
+              <div className="max-w-xs mx-auto mb-6 p-4 rounded-2xl glass-card border border-border/50">
+                <p className="text-sm font-medium text-foreground mb-3">How many more cards?</p>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <button
+                    onClick={() => setAddMoreCount(Math.max(1, addMoreCount - 5))}
+                    className="h-9 w-9 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={addMoreCount}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (!isNaN(v)) setAddMoreCount(Math.max(1, Math.min(50, v)));
+                    }}
+                    className="w-16 h-9 text-center rounded-lg border border-border bg-background text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => setAddMoreCount(Math.min(50, addMoreCount + 5))}
+                    className="h-9 w-9 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="glow"
+                    size="sm"
+                    className="flex-1"
+                    disabled={addingMore}
+                    onClick={async () => {
+                      setAddingMore(true);
+                      try {
+                        const { data, error: fnError } = await supabase.functions.invoke('generate-flashcards', {
+                          body: { topicId: result.topicId, cardCount: addMoreCount },
+                        });
+                        if (fnError) throw fnError;
+                        if (data?.error) throw new Error(data.error);
+                        setResult({ ...result, cardsGenerated: result.cardsGenerated + (data.cardsGenerated || addMoreCount) });
+                        setShowAddMore(false);
+                        toast.success(`${data.cardsGenerated || addMoreCount} more flashcards added!`);
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to generate more cards');
+                      } finally {
+                        setAddingMore(false);
+                      }
+                    }}
+                  >
+                    {addingMore ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                    Generate {addMoreCount}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowAddMore(false)} disabled={addingMore}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-6">
+                <Button variant="outline" onClick={() => setShowAddMore(true)} className="mx-auto">
+                  <Plus className="h-4 w-4 mr-2" /> Add More Cards
+                </Button>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3 max-w-xs mx-auto">
               <Button onClick={() => navigate(`/flashcards/${result.topicId}`)} variant="glow" className="h-12">
                 <Sparkles className="h-4 w-4 mr-2" /> Study Flashcards
@@ -483,8 +553,10 @@ export default function FlashcardCreator() {
                 setTextContent('');
                 setScopeInstructions('');
                 setError('');
+                setShowAddMore(false);
+                setAddMoreCount(10);
               }}>
-                Create More
+                Start New
               </Button>
             </div>
           </motion.div>
