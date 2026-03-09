@@ -322,7 +322,52 @@ export default function Auth() {
             )}
           </div>
         </motion.div>
-      </div>
-    </div>
+          </div>
+
+          {/* Forgot Password Modal */}
+          {showForgotPassword && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              onClick={() => setShowForgotPassword(false)}
+            >
+              <motion.div
+                className="w-full max-w-sm p-6 rounded-2xl glass-card border border-border/50 bg-background mx-4"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <h2 className="text-xl font-bold text-foreground mb-2 font-heading">Reset Password</h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Enter your email and we'll send you a reset link.
+                </p>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForgotPassword(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" variant="glow" className="flex-1" disabled={forgotLoading}>
+                      {forgotLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                      Send Link
+                    </Button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </div>
   );
 }
