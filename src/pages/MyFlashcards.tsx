@@ -170,7 +170,48 @@ export default function MyFlashcards() {
 
   const getGroupDisplayName = (group: FlashcardGroup) => {
     if (group.custom_name) return group.custom_name;
+    if (group.is_roadmap) return group.step_title;
     return `${group.topic_title} — ${group.step_title}`;
+  };
+
+  const renderGroupCard = (group: FlashcardGroup, i: number) => {
+    const groupKey = group.id || `${group.topic_id}-${group.step_index ?? 'all'}`;
+    const isSelected = selectedGroups.has(groupKey);
+    return (
+      <div key={`${groupKey}-${i}`} className="flex items-center gap-2">
+        {selectMode && (
+          <button onClick={() => toggleGroupSelection(group)}
+            className={`h-5 w-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-primary border-primary' : 'border-muted-foreground/40 hover:border-primary/60'}`}>
+            {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+          </button>
+        )}
+        <button
+          onClick={() => {
+            if (selectMode) { toggleGroupSelection(group); return; }
+            if (group.id) { navigate(`/flashcards/${group.topic_id}?group=${group.id}`); }
+            else { navigate(`/flashcards/${group.topic_id}${group.step_index !== null ? `?step=${group.step_index}` : ''}`); }
+          }}
+          className={`flex-1 flex items-center justify-between p-5 rounded-2xl glass-card border transition-all text-left ${isSelected ? 'border-primary/50 shadow-[0_0_12px_-4px_hsl(var(--neon-cyan)/0.3)]' : 'border-border/50 hover:border-primary/30 card-hover'}`}>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-foreground truncate">{getGroupDisplayName(group)}</h3>
+            <p className="text-sm text-muted-foreground">{group.count} cards</p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground ml-4" />
+        </button>
+        {!selectMode && (
+          <button onClick={() => { setRenamingGroup(group); setRenameValue(group.custom_name || `${group.topic_title} — ${group.step_title}`); }}
+            className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors shrink-0" title="Rename">
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
+        {!selectMode && (
+          <button onClick={() => handleDelete(group.topic_id, group.step_index)}
+            className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0">
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </div>
+    );
   };
 
   return (
