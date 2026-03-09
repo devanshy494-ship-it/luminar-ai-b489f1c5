@@ -206,6 +206,9 @@ export default function Learn() {
         body.sourceContent = extractedContent.slice(0, 15000);
         body.strictMode = strictMode;
       }
+      if (additionalInfo.trim()) {
+        body.additionalInfo = additionalInfo.trim();
+      }
 
       const { data, error } = await supabase.functions.invoke('generate-roadmap', {
         body,
