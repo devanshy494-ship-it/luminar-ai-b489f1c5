@@ -675,9 +675,12 @@ export default function Learn() {
 
           {!loading && (
             <div>
-              <p className="text-sm text-muted-foreground mb-4">Or try one of these:</p>
+              <div className="flex items-center gap-2 mb-4">
+                <p className="text-sm text-muted-foreground">Or try one of these:</p>
+                {loadingSuggestions && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              </div>
               <div className="flex flex-wrap gap-2">
-                {suggestions.map((s) => (
+                {smartSuggestions.map((s) => (
                   <button
                     key={s}
                     onClick={() => {
