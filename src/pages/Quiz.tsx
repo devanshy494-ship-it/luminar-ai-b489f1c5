@@ -32,6 +32,9 @@ export default function Quiz() {
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
   const [wrongQuestions, setWrongQuestions] = useState<Question[]>([]);
+  const [showGenerateMore, setShowGenerateMore] = useState(false);
+  const [generateMoreCount, setGenerateMoreCount] = useState(10);
+  const [generatingMore, setGeneratingMore] = useState(false);
 
   const isCustomQuiz = topicId === 'custom';
 
