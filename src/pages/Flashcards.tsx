@@ -278,7 +278,7 @@ export default function Flashcards() {
             variant="outline"
             size="lg"
             onClick={async () => {
-              if (!confirm('Delete this card? (Too easy)')) return;
+              if (confirmDelete && !confirm('Delete this card? (Too easy)')) return;
               const cardId = currentCard.id;
               await supabase.from('flashcards').delete().eq('id', cardId);
               const newCards = cards.filter(c => c.id !== cardId);
