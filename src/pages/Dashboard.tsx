@@ -179,6 +179,10 @@ export default function Dashboard() {
     if (isGuest) {
       guestStorage.deleteFlashcardGroup(id);
       setFlashcardGroups(prev => prev.filter(g => g.id !== id));
+    } else if (id.startsWith('ungrouped-')) {
+      const topicId = id.replace('ungrouped-', '');
+      await supabase.from('flashcards').delete().eq('topic_id', topicId).is('group_id', null);
+      setFlashcardGroups(prev => prev.filter(g => g.id !== id));
     } else {
       await supabase.from('flashcards').delete().eq('group_id', id);
       await supabase.from('flashcard_groups').delete().eq('id', id);
