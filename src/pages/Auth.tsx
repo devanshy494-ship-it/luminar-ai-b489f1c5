@@ -51,14 +51,39 @@ export default function Auth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !fullName) return;
+    if (!email || !password || !fullName || !signupPassword) return;
     if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
+      // Validate signup password first
+      const validateRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ password_text: signupPassword }),
+        }
+      );
+      const validateData = await validateRes.json();
+      if (!validateData.valid) {
+        toast.error(validateData.error || 'Invalid signup password');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await signUpWithEmail(email, password, fullName);
       if (error) {
         toast.error(error.message);
       } else {
+        // Record usage
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: JSON.stringify({ action: 'record_usage', password_id: validateData.password_id, user_email: email }),
+          }
+        );
         toast.success('Check your email to verify your account!');
         setActiveTab('login');
       }
