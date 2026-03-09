@@ -34,6 +34,7 @@ export default function Flashcards() {
   const [stepTitle, setStepTitle] = useState('');
   const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
   const [groupName, setGroupName] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(true);
 
   // Rename state
   const [isRenaming, setIsRenaming] = useState(false);
@@ -277,7 +278,7 @@ export default function Flashcards() {
             variant="outline"
             size="lg"
             onClick={async () => {
-              if (!confirm('Delete this card? (Too easy)')) return;
+              if (confirmDelete && !confirm('Delete this card? (Too easy)')) return;
               const cardId = currentCard.id;
               await supabase.from('flashcards').delete().eq('id', cardId);
               const newCards = cards.filter(c => c.id !== cardId);
@@ -299,6 +300,20 @@ export default function Flashcards() {
           <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
             <ChevronRight className="h-5 w-5" />
           </Button>
+        </div>
+
+        {/* Confirm toggle */}
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <label htmlFor="confirm-delete" className="text-xs text-muted-foreground cursor-pointer select-none">Confirm delete</label>
+          <button
+            id="confirm-delete"
+            role="switch"
+            aria-checked={confirmDelete}
+            onClick={() => setConfirmDelete(!confirmDelete)}
+            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${confirmDelete ? 'bg-primary' : 'bg-muted-foreground/30'}`}
+          >
+            <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-background transition-transform ${confirmDelete ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+          </button>
         </div>
 
         {/* Actions */}
