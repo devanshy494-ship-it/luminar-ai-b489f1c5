@@ -93,6 +93,9 @@ export default function FlashcardCreator() {
   const [result, setResult] = useState<{ topicId: string; title: string; cardsGenerated: number } | null>(null);
   const [error, setError] = useState('');
   const [scopeInstructions, setScopeInstructions] = useState('');
+  const [addMoreCount, setAddMoreCount] = useState(10);
+  const [showAddMore, setShowAddMore] = useState(false);
+  const [addingMore, setAddingMore] = useState(false);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
