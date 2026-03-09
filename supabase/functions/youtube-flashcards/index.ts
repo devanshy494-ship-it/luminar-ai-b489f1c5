@@ -171,12 +171,21 @@ serve(async (req) => {
 
     const topicId = topicData.id;
 
+    // Create flashcard group
+    const { data: group, error: groupError } = await supabase
+      .from("flashcard_groups")
+      .insert({ user_id: userId, name: title, topic_id: topicId })
+      .select("id")
+      .single();
+    if (groupError) throw groupError;
+
     // Insert flashcards
     const rows = flashcards.map((fc: { front: string; back: string }) => ({
       front: fc.front,
       back: fc.back,
       topic_id: topicId,
       user_id: userId,
+      group_id: group.id,
     }));
 
     const { error: insertError } = await supabase.from("flashcards").insert(rows);
