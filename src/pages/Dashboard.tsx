@@ -200,8 +200,13 @@ export default function Dashboard() {
               <TooltipContent>Back to Home</TooltipContent>
             </Tooltip>
             <ThemeToggle />
+            {isGuest && (
+              <span className="px-2 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold">
+                Guest
+              </span>
+            )}
             <Avatar className="h-8 w-8 border border-border/50">
-              <AvatarImage src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt={userName} />
+              {!isGuest && <AvatarImage src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt={userName} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                 {userName.slice(0, 2).toUpperCase()}
               </AvatarFallback>
