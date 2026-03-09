@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw, Plus, Minus, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 interface Question {
   question: string;
