@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, ArrowLeft, RotateCcw, ChevronLeft, ChevronRight, Loader2, Plus, Pencil, Check, X, Download } from 'lucide-react';
+import { BookOpen, ArrowLeft, RotateCcw, ChevronLeft, ChevronRight, Loader2, Plus, Pencil, Check, X, Download, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
@@ -28,6 +28,8 @@ export default function Flashcards() {
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [cardCount, setCardCount] = useState(10);
+  const [showCountPicker, setShowCountPicker] = useState(false);
   const [topicTitle, setTopicTitle] = useState('');
   const [stepTitle, setStepTitle] = useState('');
   const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
@@ -81,8 +83,9 @@ export default function Flashcards() {
 
   const handleGenerateMore = async () => {
     setGenerating(true);
+    setShowCountPicker(false);
     try {
-      const body: any = { topicId };
+      const body: any = { topicId, cardCount };
       if (stepFilter !== null) {
         body.stepIndex = parseInt(stepFilter);
         body.stepTitle = stepTitle;
@@ -276,11 +279,43 @@ export default function Flashcards() {
         </div>
 
         {/* Actions */}
-        <div className="flex justify-center gap-3 mt-6">
-          <Button variant="outline" size="sm" onClick={handleGenerateMore} disabled={generating}>
-            {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
-            Generate More Cards
-          </Button>
+        <div className="flex justify-center gap-3 mt-6 relative">
+          <div className="relative">
+            <Button variant="outline" size="sm" onClick={() => setShowCountPicker(!showCountPicker)} disabled={generating}>
+              {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Generate {cardCount} More
+            </Button>
+            <AnimatePresence>
+              {showCountPicker && !generating && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 p-3 rounded-xl glass-card border border-border/50 shadow-lg z-20 min-w-[200px]"
+                >
+                  <p className="text-xs text-muted-foreground mb-2 text-center">How many cards?</p>
+                  <div className="flex gap-1.5 justify-center mb-2">
+                    {[5, 10, 15, 20, 30].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setCardCount(n)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          cardCount === n
+                            ? 'bg-primary/10 text-primary border border-primary/30'
+                            : 'text-muted-foreground hover:text-foreground border border-border hover:border-primary/20'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="glow" size="sm" className="w-full" onClick={handleGenerateMore}>
+                    <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate {cardCount}
+                  </Button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
           <Button
             variant="outline"
             size="sm"
