@@ -269,12 +269,6 @@ export default function Flashcards() {
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-4">
-          <Button variant="outline" size="lg" onClick={goPrev} disabled={currentIndex === 0}>
-            <ChevronLeft className="h-5 w-5" />
-          </Button>
-          <Button variant="outline" size="lg" onClick={() => { setFlipped(false); setCurrentIndex(0); }}>
-            <RotateCcw className="h-5 w-5" />
-          </Button>
           {pendingDelete ? (
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card border border-destructive/30">
               <span className="text-sm text-destructive font-medium">Delete this card?</span>
@@ -343,6 +337,7 @@ export default function Flashcards() {
               </Button>
             </>
           )}
+        </div>
 
         {/* Confirm toggle */}
         <div className="flex items-center justify-center gap-2 mt-4">
