@@ -275,33 +275,74 @@ export default function Flashcards() {
           <Button variant="outline" size="lg" onClick={() => { setFlipped(false); setCurrentIndex(0); }}>
             <RotateCcw className="h-5 w-5" />
           </Button>
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={async () => {
-              if (confirmDelete && !confirm('Delete this card? (Too easy)')) return;
-              const cardId = currentCard.id;
-              await supabase.from('flashcards').delete().eq('id', cardId);
-              const newCards = cards.filter(c => c.id !== cardId);
-              setCards(newCards);
-              if (newCards.length === 0) {
-                toast.success('All cards deleted');
-                navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard');
-                return;
-              }
-              if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
-              setFlipped(false);
-              toast.success('Card deleted');
-            }}
-            className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
-            title="Delete this card (too easy)"
-          >
-            <Trash2 className="h-5 w-5" />
-          </Button>
-          <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
-            <ChevronRight className="h-5 w-5" />
-          </Button>
-        </div>
+          {pendingDelete ? (
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl glass-card border border-destructive/30">
+              <span className="text-sm text-destructive font-medium">Delete this card?</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={async () => {
+                  const cardId = currentCard.id;
+                  await supabase.from('flashcards').delete().eq('id', cardId);
+                  const newCards = cards.filter(c => c.id !== cardId);
+                  setCards(newCards);
+                  setPendingDelete(false);
+                  if (newCards.length === 0) {
+                    toast.success('All cards deleted');
+                    navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard');
+                    return;
+                  }
+                  if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
+                  setFlipped(false);
+                  toast.success('Card deleted');
+                }}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPendingDelete(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button variant="outline" size="lg" onClick={goPrev} disabled={currentIndex === 0}>
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="lg" onClick={() => { setFlipped(false); setCurrentIndex(0); }}>
+                <RotateCcw className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={async () => {
+                  if (confirmDelete) {
+                    setPendingDelete(true);
+                    return;
+                  }
+                  const cardId = currentCard.id;
+                  await supabase.from('flashcards').delete().eq('id', cardId);
+                  const newCards = cards.filter(c => c.id !== cardId);
+                  setCards(newCards);
+                  if (newCards.length === 0) {
+                    toast.success('All cards deleted');
+                    navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard');
+                    return;
+                  }
+                  if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
+                  setFlipped(false);
+                  toast.success('Card deleted');
+                }}
+                className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+                title="Delete this card (too easy)"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </>
+          )}
 
         {/* Confirm toggle */}
         <div className="flex items-center justify-center gap-2 mt-4">
