@@ -548,7 +548,55 @@ export default function Learn() {
             )}
           </AnimatePresence>
 
-          {loading && (
+          {/* Additional Information for Roadmap */}
+          <div className="mb-6">
+            <button
+              onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>Additional Instructions</span>
+              {additionalInfo.trim() && (
+                <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Added</span>
+              )}
+              <ChevronDown className={`h-3 w-3 transition-transform ${showAdditionalInfo ? 'rotate-180' : ''}`} />
+            </button>
+            <AnimatePresence>
+              {showAdditionalInfo && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="mt-3 p-4 rounded-2xl glass-card border border-border/50">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Specify what to include, exclude, focus on, or any scope details for the roadmap.
+                    </p>
+                    <Textarea
+                      placeholder="e.g. Focus only on frontend technologies, exclude backend. Include React and TypeScript but not Angular. Keep it beginner-friendly..."
+                      value={additionalInfo}
+                      onChange={(e) => setAdditionalInfo(e.target.value)}
+                      rows={3}
+                      className="resize-none text-sm"
+                      maxLength={1000}
+                    />
+                    {additionalInfo.trim() && (
+                      <div className="flex justify-end mt-2">
+                        <button
+                          onClick={() => setAdditionalInfo('')}
+                          className="text-xs text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
             <motion.div
               className="text-center py-12"
               initial={{ opacity: 0 }}
