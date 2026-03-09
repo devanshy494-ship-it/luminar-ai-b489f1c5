@@ -160,6 +160,111 @@ export default function Quiz() {
               </div>
             )}
 
+            {/* Generate More Questions */}
+            {showGenerateMore ? (
+              <div className="max-w-xs mx-auto mb-6 p-4 rounded-2xl glass-card border border-border/50">
+                <p className="text-sm font-medium text-foreground mb-3">How many more questions?</p>
+                <div className="flex items-center justify-center gap-3 mb-3">
+                  <button
+                    onClick={() => setGenerateMoreCount(Math.max(1, generateMoreCount - 5))}
+                    className="h-9 w-9 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={generateMoreCount}
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (!isNaN(v)) setGenerateMoreCount(Math.max(1, Math.min(30, v)));
+                    }}
+                    className="w-16 h-9 text-center rounded-lg border border-border bg-background text-foreground text-lg font-bold focus:outline-none focus:ring-2 focus:ring-primary/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    onClick={() => setGenerateMoreCount(Math.min(30, generateMoreCount + 5))}
+                    className="h-9 w-9 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="glow"
+                    size="sm"
+                    className="flex-1"
+                    disabled={generatingMore}
+                    onClick={async () => {
+                      setGeneratingMore(true);
+                      try {
+                        let newQuestions: Question[] = [];
+                        if (isCustomQuiz) {
+                          // For custom quizzes, generate more using the topic title as context
+                          const { data, error: fnError } = await supabase.functions.invoke('generate-document-quiz', {
+                            body: {
+                              content: `Generate quiz questions about: ${topicTitle}`,
+                              title: topicTitle,
+                              selectedTopics: [{ name: topicTitle, subtopics: [] }],
+                              totalQuestions: generateMoreCount,
+                            },
+                          });
+                          if (fnError) throw fnError;
+                          if (data?.error) throw new Error(data.error);
+                          newQuestions = data.questions;
+                        } else {
+                          // For roadmap quizzes
+                          const { data, error: fnError } = await supabase.functions.invoke('generate-quiz', {
+                            body: { topicId, stepIndex, stepTitle, questionCount: generateMoreCount },
+                          });
+                          if (fnError) throw fnError;
+                          if (data?.error) throw new Error(data.error);
+                          newQuestions = data.questions;
+                        }
+                        // Navigate with combined questions
+                        const combinedQuestions = [...questions, ...newQuestions];
+                        navigate(`/quiz/${topicId || 'custom'}`, {
+                          state: {
+                            questions: combinedQuestions,
+                            topicTitle,
+                            stepIndex,
+                            stepTitle,
+                            retryMode: false,
+                          },
+                          replace: true,
+                        });
+                        // Reset state for new quiz
+                        setCurrentIndex(0);
+                        setSelectedAnswer(null);
+                        setShowResult(false);
+                        setScore(0);
+                        setFinished(false);
+                        setWrongQuestions([]);
+                        setShowGenerateMore(false);
+                        toast.success(`${newQuestions.length} more questions added! Total: ${combinedQuestions.length}`);
+                      } catch (err: any) {
+                        toast.error(err.message || 'Failed to generate more questions');
+                      } finally {
+                        setGeneratingMore(false);
+                      }
+                    }}
+                  >
+                    {generatingMore ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Sparkles className="h-4 w-4 mr-1" />}
+                    Generate {generateMoreCount}
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => setShowGenerateMore(false)} disabled={generatingMore}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <Button variant="outline" onClick={() => setShowGenerateMore(true)} className="mx-auto">
+                  <Plus className="h-4 w-4 mr-2" /> Generate More Questions
+                </Button>
+              </div>
+            )}
+
             <div className="flex flex-col gap-3">
               {wrongQuestions.length > 0 && (
                 <Button onClick={handleRetryWrong} variant="glow" className="gap-2">
