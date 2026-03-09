@@ -157,7 +157,7 @@ For suggestedResources:
 - Types: "website", "docs", "exercise"
 - Do NOT include video resources here — videos will be found via live YouTube search
 
-Make the roadmap progressive — each step builds on the previous one.${strictInstruction}`;
+Make the roadmap progressive — each step builds on the previous one.${strictInstruction}${additionalInstruction}`;
 
     const userContent = hasSource
       ? `Create a learning roadmap for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`
