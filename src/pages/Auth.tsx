@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, Loader2, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { BookOpen, ArrowLeft, Loader2, Mail, Lock, User, Eye, EyeOff, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,6 +17,7 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
   const [guestName, setGuestName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -50,14 +51,39 @@ export default function Auth() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || !fullName) return;
+    if (!email || !password || !fullName || !signupPassword) return;
     if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
     try {
+      // Validate signup password first
+      const validateRes = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ password_text: signupPassword }),
+        }
+      );
+      const validateData = await validateRes.json();
+      if (!validateData.valid) {
+        toast.error(validateData.error || 'Invalid signup password');
+        setLoading(false);
+        return;
+      }
+
       const { error } = await signUpWithEmail(email, password, fullName);
       if (error) {
         toast.error(error.message);
       } else {
+        // Record usage
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: JSON.stringify({ action: 'record_usage', password_id: validateData.password_id, user_email: email }),
+          }
+        );
         toast.success('Check your email to verify your account!');
         setActiveTab('login');
       }
@@ -285,6 +311,17 @@ export default function Auth() {
                   <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
+                </div>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Signup Password (from admin)"
+                    value={signupPassword}
+                    onChange={(e) => setSignupPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
                 </div>
                 <Button type="submit" variant="glow" className="w-full" disabled={loading}>
                   {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}

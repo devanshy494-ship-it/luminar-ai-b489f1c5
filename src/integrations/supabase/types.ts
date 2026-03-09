@@ -233,6 +233,65 @@ export type Database = {
           },
         ]
       }
+      signup_password_usage: {
+        Row: {
+          id: string
+          password_id: string
+          used_at: string
+          user_email: string
+        }
+        Insert: {
+          id?: string
+          password_id: string
+          used_at?: string
+          user_email: string
+        }
+        Update: {
+          id?: string
+          password_id?: string
+          used_at?: string
+          user_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signup_password_usage_password_id_fkey"
+            columns: ["password_id"]
+            isOneToOne: false
+            referencedRelation: "signup_passwords"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signup_passwords: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          max_uses: number
+          password_text: string
+          use_count: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          password_text: string
+          use_count?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          password_text?: string
+          use_count?: number
+        }
+        Relationships: []
+      }
       topics: {
         Row: {
           created_at: string
