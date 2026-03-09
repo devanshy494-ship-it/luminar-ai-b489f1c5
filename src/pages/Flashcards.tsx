@@ -273,6 +273,29 @@ export default function Flashcards() {
           <Button variant="outline" size="lg" onClick={() => { setFlipped(false); setCurrentIndex(0); }}>
             <RotateCcw className="h-5 w-5" />
           </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={async () => {
+              if (!confirm('Delete this card? (Too easy)')) return;
+              const cardId = currentCard.id;
+              await supabase.from('flashcards').delete().eq('id', cardId);
+              const newCards = cards.filter(c => c.id !== cardId);
+              setCards(newCards);
+              if (newCards.length === 0) {
+                toast.success('All cards deleted');
+                navigate(hasRoadmap ? `/roadmap/${topicId}` : '/dashboard');
+                return;
+              }
+              if (currentIndex >= newCards.length) setCurrentIndex(newCards.length - 1);
+              setFlipped(false);
+              toast.success('Card deleted');
+            }}
+            className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30"
+            title="Delete this card (too easy)"
+          >
+            <Trash2 className="h-5 w-5" />
+          </Button>
           <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
             <ChevronRight className="h-5 w-5" />
           </Button>
