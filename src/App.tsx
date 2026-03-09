@@ -39,6 +39,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
     <Route path="/roadmap/:topicId" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
