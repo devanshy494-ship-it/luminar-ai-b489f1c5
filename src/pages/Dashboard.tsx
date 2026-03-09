@@ -216,13 +216,18 @@ export default function Dashboard() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Sign out of Luminar?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to sign out? You can sign back in anytime with your Google account to access your progress.
+                    {isGuest
+                      ? '⚠️ You are in guest mode. Signing out will permanently delete all your data including roadmaps, flashcards, and quizzes stored on this device.'
+                      : 'Are you sure you want to sign out? Your progress is saved and you can sign back in anytime.'}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={async () => { await signOut(); navigate('/'); }}>
-                    Sign Out
+                  <AlertDialogAction
+                    onClick={async () => { await signOut(); navigate('/auth'); }}
+                    className={isGuest ? 'bg-destructive hover:bg-destructive/90' : ''}
+                  >
+                    {isGuest ? 'Sign Out & Delete Data' : 'Sign Out'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
