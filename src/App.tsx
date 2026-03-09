@@ -17,6 +17,7 @@ import MyMindmaps from "./pages/MyMindmaps";
 import MyFlashcards from "./pages/MyFlashcards";
 import MyQuizzes from "./pages/MyQuizzes";
 import Admin from "./pages/Admin";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<Landing />} />
     <Route path="/auth" element={<Auth />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
     <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
     <Route path="/learn" element={<ProtectedRoute><Learn /></ProtectedRoute>} />
     <Route path="/roadmap/:topicId" element={<ProtectedRoute><Roadmap /></ProtectedRoute>} />
