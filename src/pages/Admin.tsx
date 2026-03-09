@@ -77,7 +77,7 @@ export default function Admin() {
       setIsAdmin(!!data);
     };
     checkAdmin();
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (isAdmin) {
