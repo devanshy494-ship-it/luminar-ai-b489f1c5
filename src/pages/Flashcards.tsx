@@ -35,6 +35,7 @@ export default function Flashcards() {
   const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
   const [groupName, setGroupName] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState(false);
 
   // Rename state
   const [isRenaming, setIsRenaming] = useState(false);
