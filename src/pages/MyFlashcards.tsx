@@ -58,6 +58,7 @@ export default function MyFlashcards() {
       const key = fc.group_id || `${fc.topic_id}-${fc.step_index ?? 'all'}`;
       if (!groups[key]) {
         const steps = stepsMap[fc.topic_id];
+        const hasRoadmap = !!steps && steps.length > 0;
         let stepTitle = 'All Steps';
         if (fc.step_index !== null && fc.step_index !== undefined && steps?.[fc.step_index]) {
           stepTitle = steps[fc.step_index].title;
@@ -72,6 +73,7 @@ export default function MyFlashcards() {
           count: 0,
           created_at: fc.created_at,
           custom_name: grp?.name || null,
+          is_roadmap: hasRoadmap && fc.step_index !== null && fc.step_index !== undefined,
         };
       }
       groups[key].count++;
