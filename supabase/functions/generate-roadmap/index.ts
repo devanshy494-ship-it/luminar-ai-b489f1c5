@@ -116,7 +116,7 @@ serve(async (req) => {
       });
     }
 
-    const { topic, sourceContent, strictMode } = await req.json();
+    const { topic, sourceContent, strictMode, additionalInfo } = await req.json();
     if (!topic || typeof topic !== "string" || topic.trim().length === 0 || topic.length > 200) {
       return new Response(JSON.stringify({ error: "Invalid topic" }), {
         status: 400,
