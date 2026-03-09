@@ -265,6 +265,58 @@ export default function Quiz() {
               </div>
             )}
 
+            {/* Export Options */}
+            <div className="flex justify-center gap-2 mb-6">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const escapeCsv = (s: string) => {
+                    if (s.includes(',') || s.includes('"') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;
+                    return s;
+                  };
+                  const rows = ['Question,Correct Answer,Your Options,Explanation'];
+                  questions.forEach(q => {
+                    rows.push(`${escapeCsv(q.question)},${escapeCsv(q.options[q.correctIndex])},${escapeCsv(q.options.join(' | '))},${escapeCsv(q.explanation)}`);
+                  });
+                  const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${topicTitle || 'quiz'}-results.csv`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success(`Exported ${questions.length} questions as CSV`);
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  let text = `${topicTitle}\nScore: ${score}/${questions.length} (${percentage}%)\n${'─'.repeat(40)}\n\n`;
+                  questions.forEach((q, i) => {
+                    text += `Q${i + 1}: ${q.question}\n`;
+                    q.options.forEach((opt, oi) => {
+                      text += `  ${String.fromCharCode(65 + oi)}) ${opt}${oi === q.correctIndex ? ' ✓' : ''}\n`;
+                    });
+                    text += `  Explanation: ${q.explanation}\n\n`;
+                  });
+                  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `${topicTitle || 'quiz'}-results.txt`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  toast.success(`Exported ${questions.length} questions as text`);
+                }}
+              >
+                <Download className="h-4 w-4 mr-1" /> Export Text
+              </Button>
+            </div>
+
             <div className="flex flex-col gap-3">
               {wrongQuestions.length > 0 && (
                 <Button onClick={handleRetryWrong} variant="glow" className="gap-2">
