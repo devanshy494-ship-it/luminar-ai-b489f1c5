@@ -28,6 +28,8 @@ export default function Flashcards() {
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [cardCount, setCardCount] = useState(10);
+  const [showCountPicker, setShowCountPicker] = useState(false);
   const [topicTitle, setTopicTitle] = useState('');
   const [stepTitle, setStepTitle] = useState('');
   const [stepTitles, setStepTitles] = useState<Record<number, string>>({});
