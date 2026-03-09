@@ -20,6 +20,7 @@ interface FlashcardGroup {
   count: number;
   created_at: string;
   custom_name: string | null;
+  is_roadmap: boolean;
 }
 
 export default function MyFlashcards() {
