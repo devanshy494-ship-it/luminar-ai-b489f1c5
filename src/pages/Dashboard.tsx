@@ -6,6 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import { guestStorage } from '@/lib/guestStorage';
 import { toast } from 'sonner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -56,7 +57,7 @@ interface QuizResult {
 }
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user, guestUser, signOut } = useAuth();
   const navigate = useNavigate();
   const [roadmaps, setRoadmaps] = useState<RoadmapWithTopic[]>([]);
   const [mindmaps, setMindmaps] = useState<MindmapItem[]>([]);
@@ -66,7 +67,34 @@ export default function Dashboard() {
   const [isFirstVisit, setIsFirstVisit] = useState(true);
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
 
+  const isGuest = !!guestUser;
+
   useEffect(() => {
+    if (isGuest) {
+      // Load from localStorage for guests
+      const guestRoadmaps = guestStorage.getRoadmaps();
+      const guestTopics = guestStorage.getTopics();
+      const rm: RoadmapWithTopic[] = guestRoadmaps.map(r => ({
+        ...r,
+        topics: guestTopics.find(t => t.id === r.topic_id) ? { title: guestTopics.find(t => t.id === r.topic_id)!.title } : null,
+      }));
+      setRoadmaps(rm);
+      setMindmaps(guestStorage.getMindmaps());
+      const guestGroups = guestStorage.getFlashcardGroups();
+      setFlashcardGroups(guestGroups.map(g => ({
+        ...g,
+        topics: guestTopics.find(t => t.id === g.topic_id) ? { title: guestTopics.find(t => t.id === g.topic_id)!.title } : null,
+      })));
+      const guestQuizzes = guestStorage.getQuizResults();
+      setQuizResults(guestQuizzes.map(q => ({
+        ...q,
+        topics: guestTopics.find(t => t.id === q.topic_id) ? { title: guestTopics.find(t => t.id === q.topic_id)!.title } : null,
+      })));
+      setIsFirstVisit(guestRoadmaps.length === 0);
+      setLoading(false);
+      return;
+    }
+
     if (!user) return;
 
     Promise.all([
@@ -82,39 +110,60 @@ export default function Dashboard() {
       setIsFirstVisit(!rm.data || rm.data.length === 0);
       setLoading(false);
     });
-  }, [user]);
+  }, [user, isGuest]);
 
   const handleDeleteRoadmap = async (roadmapId: string, topicId: string) => {
     if (!confirm('Delete this roadmap and all associated data?')) return;
-    await Promise.all([
-      supabase.from('flashcards').delete().eq('topic_id', topicId),
-      supabase.from('quiz_results').delete().eq('topic_id', topicId),
-      supabase.from('roadmaps').delete().eq('id', roadmapId),
-      supabase.from('topics').delete().eq('id', topicId),
-    ]);
-    setRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+    if (isGuest) {
+      guestStorage.deleteTopic(topicId);
+      guestStorage.deleteRoadmap(topicId);
+      setRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+    } else {
+      await Promise.all([
+        supabase.from('flashcards').delete().eq('topic_id', topicId),
+        supabase.from('quiz_results').delete().eq('topic_id', topicId),
+        supabase.from('roadmaps').delete().eq('id', roadmapId),
+        supabase.from('topics').delete().eq('id', topicId),
+      ]);
+      setRoadmaps(prev => prev.filter(r => r.id !== roadmapId));
+    }
     toast.success('Roadmap deleted');
   };
 
   const handleDeleteMindmap = async (id: string) => {
     if (!confirm('Delete this mindmap?')) return;
-    await supabase.from('mindmaps').delete().eq('id', id);
-    setMindmaps(prev => prev.filter(m => m.id !== id));
+    if (isGuest) {
+      guestStorage.deleteMindmap(id);
+      setMindmaps(prev => prev.filter(m => m.id !== id));
+    } else {
+      await supabase.from('mindmaps').delete().eq('id', id);
+      setMindmaps(prev => prev.filter(m => m.id !== id));
+    }
     toast.success('Mindmap deleted');
   };
 
   const handleDeleteFlashcardGroup = async (id: string) => {
     if (!confirm('Delete this flashcard set and all its cards?')) return;
-    await supabase.from('flashcards').delete().eq('group_id', id);
-    await supabase.from('flashcard_groups').delete().eq('id', id);
-    setFlashcardGroups(prev => prev.filter(g => g.id !== id));
+    if (isGuest) {
+      guestStorage.deleteFlashcardGroup(id);
+      setFlashcardGroups(prev => prev.filter(g => g.id !== id));
+    } else {
+      await supabase.from('flashcards').delete().eq('group_id', id);
+      await supabase.from('flashcard_groups').delete().eq('id', id);
+      setFlashcardGroups(prev => prev.filter(g => g.id !== id));
+    }
     toast.success('Flashcard set deleted');
   };
 
   const handleDeleteQuiz = async (id: string) => {
     if (!confirm('Delete this quiz result?')) return;
-    await supabase.from('quiz_results').delete().eq('id', id);
-    setQuizResults(prev => prev.filter(q => q.id !== id));
+    if (isGuest) {
+      guestStorage.deleteQuizResult(id);
+      setQuizResults(prev => prev.filter(q => q.id !== id));
+    } else {
+      await supabase.from('quiz_results').delete().eq('id', id);
+      setQuizResults(prev => prev.filter(q => q.id !== id));
+    }
     toast.success('Quiz result deleted');
   };
 
@@ -125,7 +174,9 @@ export default function Dashboard() {
     });
   };
 
-  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
+  const userName = isGuest 
+    ? guestUser.name 
+    : user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Learner';
 
   const shimmer = <div className="grid gap-3">{[1, 2, 3].map(i => <div key={i} className="h-20 rounded-2xl shimmer-cyan" />)}</div>;
 
@@ -149,8 +200,13 @@ export default function Dashboard() {
               <TooltipContent>Back to Home</TooltipContent>
             </Tooltip>
             <ThemeToggle />
+            {isGuest && (
+              <span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                Guest
+              </span>
+            )}
             <Avatar className="h-8 w-8 border border-border/50">
-              <AvatarImage src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt={userName} />
+              {!isGuest && <AvatarImage src={user?.user_metadata?.avatar_url || user?.user_metadata?.picture} alt={userName} />}
               <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
                 {userName.slice(0, 2).toUpperCase()}
               </AvatarFallback>
@@ -165,13 +221,18 @@ export default function Dashboard() {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Sign out of Luminar?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to sign out? You can sign back in anytime with your Google account to access your progress.
+                    {isGuest
+                      ? '⚠️ You are in guest mode. Signing out will permanently delete all your data including roadmaps, flashcards, and quizzes stored on this device.'
+                      : 'Are you sure you want to sign out? Your progress is saved and you can sign back in anytime.'}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={async () => { await signOut(); navigate('/'); }}>
-                    Sign Out
+                  <AlertDialogAction
+                    onClick={async () => { await signOut(); navigate('/auth'); }}
+                    className={isGuest ? 'bg-destructive hover:bg-destructive/90' : ''}
+                  >
+                    {isGuest ? 'Sign Out & Delete Data' : 'Sign Out'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

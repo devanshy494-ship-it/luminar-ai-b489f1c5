@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { lovable } from '@/integrations/lovable/index';
+import { guestStorage } from '@/lib/guestStorage';
+
+const GUEST_USER_KEY = 'luminar_guest_user';
 
 interface GuestUser {
   id: string;
@@ -31,6 +34,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [guestUser, setGuestUser] = useState<GuestUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Load guest user from localStorage on init
+  useEffect(() => {
+    try {
+      const savedGuest = localStorage.getItem(GUEST_USER_KEY);
+      if (savedGuest) {
+        setGuestUser(JSON.parse(savedGuest));
+      }
+    } catch { /* ignore */ }
+  }, []);
 
   const checkAdminRole = async (userId: string) => {
     const { data } = await supabase
@@ -104,11 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest: true,
     };
     setGuestUser(guest);
+    localStorage.setItem(GUEST_USER_KEY, JSON.stringify(guest));
   };
 
   const signOut = async () => {
     if (guestUser) {
       setGuestUser(null);
+      localStorage.removeItem(GUEST_USER_KEY);
+      guestStorage.clearData();
       return;
     }
     await supabase.auth.signOut();
