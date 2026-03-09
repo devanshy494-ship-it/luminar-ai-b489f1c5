@@ -201,7 +201,7 @@ export default function Dashboard() {
             </Tooltip>
             <ThemeToggle />
             {isGuest && (
-              <span className="px-2 py-1 rounded-full bg-warning/20 text-warning text-xs font-semibold">
+              <span className="px-2 py-1 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-semibold">
                 Guest
               </span>
             )}
