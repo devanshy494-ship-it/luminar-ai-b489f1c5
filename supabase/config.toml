@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.generate-suggestions]
 verify_jwt = false
+
+[functions.validate-signup-password]
+verify_jwt = false
