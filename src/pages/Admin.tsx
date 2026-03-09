@@ -62,7 +62,11 @@ export default function Admin() {
   const [activeSection, setActiveSection] = useState<'users' | 'passwords'>('users');
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
     const checkAdmin = async () => {
       const { data } = await supabase
         .from('user_roles')
