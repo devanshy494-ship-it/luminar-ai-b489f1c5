@@ -62,7 +62,11 @@ export default function Admin() {
   const [activeSection, setActiveSection] = useState<'users' | 'passwords'>('users');
 
   useEffect(() => {
-    if (!user) return;
+    if (authLoading) return;
+    if (!user) {
+      setIsAdmin(false);
+      return;
+    }
     const checkAdmin = async () => {
       const { data } = await supabase
         .from('user_roles')
@@ -73,7 +77,7 @@ export default function Admin() {
       setIsAdmin(!!data);
     };
     checkAdmin();
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -219,7 +223,7 @@ export default function Admin() {
     }
   };
 
-  if (authLoading || isAdmin === null) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
