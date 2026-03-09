@@ -68,16 +68,19 @@ export default function Quiz() {
       setShowResult(false);
     } else {
       setFinished(true);
-      if (user && topicId && !retryMode && !isCustomQuiz) {
+      // Calculate final score including current answer
+      const finalScore = selectedAnswer === currentQ.correctIndex ? score + 1 : score;
+      const finalWrong = selectedAnswer !== currentQ.correctIndex ? [...wrongQuestions, currentQ] : wrongQuestions;
+      if (user && topicId) {
         try {
           await supabase.from('quiz_results').insert({
-            topic_id: topicId,
+            topic_id: isCustomQuiz ? topicId : topicId,
             user_id: user.id,
-            score,
+            score: finalScore,
             total: questions.length,
             questions,
             step_index: stepIndex ?? null,
-            wrong_questions: wrongQuestions,
+            wrong_questions: finalWrong,
           });
         } catch (e) {
           console.error('Failed to save quiz result', e);

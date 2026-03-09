@@ -274,11 +274,13 @@ export default function Flashcards() {
               <Button variant="outline" size="lg" onClick={goPrev} disabled={currentIndex === 0}>
                 <ChevronLeft className="h-5 w-5" />
               </Button>
-              <span className="text-sm text-destructive font-medium whitespace-nowrap">Too easy?</span>
+              <Button variant="outline" size="lg" onClick={() => setPendingDelete(false)}>
+                <RotateCcw className="h-5 w-5" />
+              </Button>
               <Button
                 variant="outline"
                 size="lg"
-                className="border-destructive/30 text-destructive hover:bg-destructive/10 min-w-[44px]"
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
                 onClick={async () => {
                   const cardId = currentCard.id;
                   const deletedCard = { ...currentCard };
@@ -319,11 +321,9 @@ export default function Flashcards() {
                     duration: 6000,
                   });
                 }}
+                title="Confirm delete — too easy?"
               >
-                <Check className="h-5 w-5" />
-              </Button>
-              <Button variant="outline" size="lg" onClick={() => setPendingDelete(false)}>
-                <X className="h-5 w-5" />
+                <Trash2 className="h-5 w-5" />
               </Button>
               <Button variant="outline" size="lg" onClick={goNext} disabled={currentIndex === cards.length - 1}>
                 <ChevronRight className="h-5 w-5" />
