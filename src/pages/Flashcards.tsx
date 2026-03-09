@@ -294,20 +294,30 @@ export default function Flashcards() {
                   className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 p-3 rounded-xl glass-card border border-border/50 shadow-lg z-20 min-w-[200px]"
                 >
                   <p className="text-xs text-muted-foreground mb-2 text-center">How many cards?</p>
-                  <div className="flex gap-1.5 justify-center mb-2">
-                    {[5, 10, 15, 20, 30].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setCardCount(n)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          cardCount === n
-                            ? 'bg-primary/10 text-primary border border-primary/30'
-                            : 'text-muted-foreground hover:text-foreground border border-border hover:border-primary/20'
-                        }`}
-                      >
-                        {n}
-                      </button>
-                    ))}
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <button
+                      onClick={() => setCardCount(Math.max(1, cardCount - 5))}
+                      className="h-8 w-8 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                    >
+                      <span className="text-lg font-bold">−</span>
+                    </button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      value={cardCount}
+                      onChange={(e) => {
+                        const v = parseInt(e.target.value);
+                        if (!isNaN(v)) setCardCount(Math.max(1, Math.min(50, v)));
+                      }}
+                      className="w-16 h-8 text-center rounded-lg border border-border bg-background text-foreground text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      onClick={() => setCardCount(Math.min(50, cardCount + 5))}
+                      className="h-8 w-8 rounded-lg border border-border hover:border-primary/30 hover:bg-primary/10 text-muted-foreground hover:text-primary flex items-center justify-center transition-all"
+                    >
+                      <span className="text-lg font-bold">+</span>
+                    </button>
                   </div>
                   <Button variant="glow" size="sm" className="w-full" onClick={handleGenerateMore}>
                     <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Generate {cardCount}
