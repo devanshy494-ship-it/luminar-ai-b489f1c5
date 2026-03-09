@@ -35,6 +35,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  // Load guest user from localStorage on init
+  useEffect(() => {
+    try {
+      const savedGuest = localStorage.getItem(GUEST_USER_KEY);
+      if (savedGuest) {
+        setGuestUser(JSON.parse(savedGuest));
+      }
+    } catch { /* ignore */ }
+  }, []);
+
   const checkAdminRole = async (userId: string) => {
     const { data } = await supabase
       .from('user_roles')
