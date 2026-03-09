@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw, Plus, Minus, Loader2, Sparkles } from 'lucide-react';
+import { BookOpen, ArrowLeft, CheckCircle2, XCircle, Trophy, RotateCcw, Plus, Minus, Loader2, Sparkles, Download, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
