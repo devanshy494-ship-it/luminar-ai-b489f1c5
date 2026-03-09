@@ -87,6 +87,28 @@ export default function Auth() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) return;
+    setForgotLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Check your email for a password reset link!');
+        setShowForgotPassword(false);
+        setForgotEmail('');
+      }
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
   const tabs: { key: AuthTab; label: string }[] = [
     { key: 'login', label: 'Login' },
     { key: 'signup', label: 'Sign Up' },
