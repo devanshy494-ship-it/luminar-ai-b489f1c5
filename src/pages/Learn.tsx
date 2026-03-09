@@ -116,7 +116,15 @@ export default function Learn() {
     if (!sourceUrl.trim()) return;
     setSourceError('');
     setLoadingSource(true);
-    const cleanUrl = sourceUrl.trim().startsWith('http') ? sourceUrl.trim() : `https://${sourceUrl.trim()}`;
+    const trimmed = sourceUrl.trim();
+    // Basic URL validation
+    const urlPattern = /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}(\/\S*)?$/i;
+    if (!urlPattern.test(trimmed)) {
+      setSourceError('Please enter a valid URL (e.g. https://example.com)');
+      setLoadingSource(false);
+      return;
+    }
+    const cleanUrl = trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
 
     try {
       if (isYouTubeUrl(cleanUrl)) {
