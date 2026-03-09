@@ -83,8 +83,9 @@ export default function Flashcards() {
 
   const handleGenerateMore = async () => {
     setGenerating(true);
+    setShowCountPicker(false);
     try {
-      const body: any = { topicId };
+      const body: any = { topicId, cardCount };
       if (stepFilter !== null) {
         body.stepIndex = parseInt(stepFilter);
         body.stepTitle = stepTitle;
