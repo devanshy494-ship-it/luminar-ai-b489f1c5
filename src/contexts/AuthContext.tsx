@@ -117,11 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isGuest: true,
     };
     setGuestUser(guest);
+    localStorage.setItem(GUEST_USER_KEY, JSON.stringify(guest));
   };
 
   const signOut = async () => {
     if (guestUser) {
       setGuestUser(null);
+      localStorage.removeItem(GUEST_USER_KEY);
+      guestStorage.clearData();
       return;
     }
     await supabase.auth.signOut();
