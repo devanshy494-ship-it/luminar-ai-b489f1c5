@@ -130,6 +130,15 @@ serve(async (req) => {
 
     const { flashcards } = JSON.parse(toolCall.function.arguments);
 
+    // Create a flashcard group
+    const groupName = stepTitle ? `${topic.title} - ${stepTitle}` : topic.title;
+    const { data: group, error: groupError } = await supabase
+      .from("flashcard_groups")
+      .insert({ user_id: user.id, name: groupName, topic_id: topicId })
+      .select("id")
+      .single();
+    if (groupError) throw groupError;
+
     const flashcardRows = flashcards.map((fc: any) => ({
       topic_id: topicId,
       user_id: user.id,
@@ -137,6 +146,7 @@ serve(async (req) => {
       back: fc.back,
       mastery_level: 0,
       step_index: stepIndex ?? null,
+      group_id: group.id,
     }));
 
     const { error: insertError } = await supabase.from("flashcards").insert(flashcardRows);

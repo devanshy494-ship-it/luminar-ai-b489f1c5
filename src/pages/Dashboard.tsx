@@ -102,12 +102,44 @@ export default function Dashboard() {
       supabase.from('mindmaps').select('id, topic, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('flashcard_groups').select('id, name, topic_id, created_at, topics(title)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('quiz_results').select('id, topic_id, score, total, step_index, wrong_questions, completed_at, topics(title)').eq('user_id', user.id).order('completed_at', { ascending: false }),
-    ]).then(([rm, mm, fg, qz]) => {
+      supabase.from('flashcards').select('id, topic_id, step_index, created_at, group_id').eq('user_id', user.id).is('group_id', null),
+    ]).then(async ([rm, mm, fg, qz, ungroupedFc]) => {
       setRoadmaps((rm.data as any) || []);
       setMindmaps((mm.data as any) || []);
-      setFlashcardGroups((fg.data as any) || []);
       setQuizResults((qz.data as any) || []);
       setIsFirstVisit(!rm.data || rm.data.length === 0);
+
+      // Merge ungrouped flashcards as synthetic groups
+      const groups: FlashcardGroup[] = (fg.data as any) || [];
+      const ungrouped = (ungroupedFc.data as any) || [];
+      if (ungrouped.length > 0) {
+        const topicMap: Record<string, { count: number; created_at: string }> = {};
+        for (const fc of ungrouped) {
+          const existing = topicMap[fc.topic_id];
+          if (!existing) {
+            topicMap[fc.topic_id] = { count: 1, created_at: fc.created_at };
+          } else {
+            existing.count++;
+          }
+        }
+        const topicIds = Object.keys(topicMap).filter(id => !groups.some(g => g.topic_id === id));
+        if (topicIds.length > 0) {
+          const { data: topics } = await supabase.from('topics').select('id, title').in('id', topicIds);
+          for (const tid of topicIds) {
+            const info = topicMap[tid];
+            const topic = topics?.find((t: any) => t.id === tid);
+            groups.push({
+              id: `ungrouped-${tid}`,
+              name: topic?.title || 'Untitled',
+              topic_id: tid,
+              created_at: info.created_at,
+              topics: topic ? { title: topic.title } : null,
+              count: info.count,
+            });
+          }
+        }
+      }
+      setFlashcardGroups(groups);
       setLoading(false);
     });
   }, [user, isGuest]);
@@ -146,6 +178,10 @@ export default function Dashboard() {
     if (!confirm('Delete this flashcard set and all its cards?')) return;
     if (isGuest) {
       guestStorage.deleteFlashcardGroup(id);
+      setFlashcardGroups(prev => prev.filter(g => g.id !== id));
+    } else if (id.startsWith('ungrouped-')) {
+      const topicId = id.replace('ungrouped-', '');
+      await supabase.from('flashcards').delete().eq('topic_id', topicId).is('group_id', null);
       setFlashcardGroups(prev => prev.filter(g => g.id !== id));
     } else {
       await supabase.from('flashcards').delete().eq('group_id', id);

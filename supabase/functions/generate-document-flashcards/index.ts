@@ -147,6 +147,17 @@ serve(async (req) => {
 
     const { flashcards } = JSON.parse(toolCall.function.arguments);
 
+    // Create flashcard group
+    const { data: group, error: groupError } = await supabase
+      .from("flashcard_groups")
+      .insert({ user_id: user.id, name: title, topic_id: topic.id })
+      .select("id")
+      .single();
+    if (groupError) {
+      await supabase.from("topics").delete().eq("id", topic.id);
+      throw groupError;
+    }
+
     const flashcardRows = flashcards.map((fc: any) => ({
       topic_id: topic.id,
       user_id: user.id,
@@ -154,6 +165,7 @@ serve(async (req) => {
       back: fc.back,
       mastery_level: 0,
       step_index: null,
+      group_id: group.id,
     }));
 
     const { error: insertError } = await supabase.from("flashcards").insert(flashcardRows);
