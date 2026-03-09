@@ -115,18 +115,18 @@ export default function Dashboard() {
       if (ungrouped.length > 0) {
         const topicMap: Record<string, { count: number; created_at: string }> = {};
         for (const fc of ungrouped) {
-          const existing = topicMap.get(fc.topic_id);
+          const existing = topicMap[fc.topic_id];
           if (!existing) {
-            topicMap.set(fc.topic_id, { count: 1, created_at: fc.created_at });
+            topicMap[fc.topic_id] = { count: 1, created_at: fc.created_at };
           } else {
             existing.count++;
           }
         }
-        const topicIds = Array.from(topicMap.keys()).filter(id => !groups.some(g => g.topic_id === id));
+        const topicIds = Object.keys(topicMap).filter(id => !groups.some(g => g.topic_id === id));
         if (topicIds.length > 0) {
           const { data: topics } = await supabase.from('topics').select('id, title').in('id', topicIds);
           for (const tid of topicIds) {
-            const info = topicMap.get(tid)!;
+            const info = topicMap[tid];
             const topic = topics?.find((t: any) => t.id === tid);
             groups.push({
               id: `ungrouped-${tid}`,
