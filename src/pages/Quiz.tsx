@@ -71,7 +71,7 @@ export default function Quiz() {
       // Calculate final score including current answer
       const finalScore = selectedAnswer === currentQ.correctIndex ? score + 1 : score;
       const finalWrong = selectedAnswer !== currentQ.correctIndex ? [...wrongQuestions, currentQ] : wrongQuestions;
-      if (user && topicId) {
+      if (user && topicId && !isCustomQuiz) {
         try {
           await supabase.from('quiz_results').insert({
             topic_id: isCustomQuiz ? topicId : topicId,
