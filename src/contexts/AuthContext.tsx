@@ -2,6 +2,9 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { lovable } from '@/integrations/lovable/index';
+import { guestStorage } from '@/lib/guestStorage';
+
+const GUEST_USER_KEY = 'luminar_guest_user';
 
 interface GuestUser {
   id: string;
