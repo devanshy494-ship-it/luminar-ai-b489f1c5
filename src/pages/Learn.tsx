@@ -75,6 +75,7 @@ async function extractTextFromFile(file: File): Promise<string> {
 }
 
 export default function Learn() {
+  const { user, guestUser } = useAuth();
   const [topic, setTopic] = useState('');
   const [loading, setLoading] = useState(false);
   const [strictMode, setStrictMode] = useState(false);
@@ -89,10 +90,55 @@ export default function Learn() {
   const [loadingSource, setLoadingSource] = useState(false);
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
-  // New: pending generation type — when set, show mode selection
   const [pendingGenType, setPendingGenType] = useState<'roadmap' | 'mindmap' | null>(null);
+  const [smartSuggestions, setSmartSuggestions] = useState<string[]>(defaultSuggestions);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+
+  // Track visits and fetch personalized suggestions every 7 visits
+  useEffect(() => {
+    if (guestUser) return; // Guest users get default suggestions
+
+    const visitCount = parseInt(localStorage.getItem(VISIT_COUNT_KEY) || '0', 10) + 1;
+    localStorage.setItem(VISIT_COUNT_KEY, String(visitCount));
+
+    const lastFetchVisit = parseInt(localStorage.getItem(SUGGESTIONS_VISIT_KEY) || '0', 10);
+    const cached = localStorage.getItem(SUGGESTIONS_CACHE_KEY);
+
+    // Load cached suggestions if available
+    if (cached) {
+      try {
+        setSmartSuggestions(JSON.parse(cached));
+      } catch { /* use defaults */ }
+    }
+
+    // Fetch new suggestions every 7 visits
+    if (visitCount - lastFetchVisit >= 7 && user) {
+      fetchPersonalizedSuggestions(visitCount);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fetchPersonalizedSuggestions = async (currentVisit: number) => {
+    setLoadingSuggestions(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-suggestions');
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const topics = (data.suggestions as Suggestion[]).map(s => s.topic);
+      if (topics.length === 6) {
+        setSmartSuggestions(topics);
+        localStorage.setItem(SUGGESTIONS_CACHE_KEY, JSON.stringify(topics));
+        localStorage.setItem(SUGGESTIONS_VISIT_KEY, String(currentVisit));
+      }
+    } catch (e) {
+      console.error('Failed to fetch personalized suggestions:', e);
+      // Silently fall back to cached or default suggestions
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   const hasSource = !!extractedContent;
 
