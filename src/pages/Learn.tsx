@@ -1,14 +1,19 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle, GitBranch, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { BookOpen, Brain, ArrowLeft, Loader2, Sparkles, Plus, Upload, Link, FileText, Youtube, X, Check, AlertCircle, GitBranch, SlidersHorizontal, ChevronDown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
 
-const suggestions = [
+const VISIT_COUNT_KEY = 'luminar_learn_visit_count';
+const SUGGESTIONS_CACHE_KEY = 'luminar_personalized_suggestions';
+const SUGGESTIONS_VISIT_KEY = 'luminar_suggestions_fetch_visit';
+
+const defaultSuggestions = [
   'Machine Learning Fundamentals',
   'JavaScript for Beginners',
   'Quantum Physics',
@@ -18,6 +23,11 @@ const suggestions = [
 ];
 
 type SourceType = 'file' | 'url' | 'text';
+
+interface Suggestion {
+  topic: string;
+  category: 'based_on_history' | 'random' | 'tangential';
+}
 
 function isYouTubeUrl(urlStr: string) {
   return /(?:youtube\.com\/watch|youtu\.be\/|youtube\.com\/shorts\/|youtube\.com\/embed\/)/.test(urlStr);
