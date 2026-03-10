@@ -44,29 +44,22 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: "You are a quiz generator. Create 10 multiple-choice questions about the given topic. Each question should have 4 options with exactly one correct answer. Make questions progressively harder." },
-          { role: "user", content: `Create a quiz about: ${subject}` },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_quiz",
-            description: "Create multiple-choice quiz questions",
-            parameters: {
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: "You are a quiz generator. Create 10 multiple-choice questions about the given topic. Each question should have 4 options with exactly one correct answer. Make questions progressively harder." }] },
+          contents: [{ parts: [{ text: `Create a quiz about: ${subject}` }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: "object",
               properties: {
                 questions: {
@@ -80,32 +73,28 @@ serve(async (req) => {
                       explanation: { type: "string" },
                     },
                     required: ["question", "options", "correctIndex", "explanation"],
-                    additionalProperties: false,
                   },
                 },
               },
               required: ["questions"],
-              additionalProperties: false,
             },
           },
-        }],
-        tool_choice: { type: "function", function: { name: "create_quiz" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
       if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("No response from AI");
 
-    const { questions } = JSON.parse(toolCall.function.arguments);
+    const { questions } = JSON.parse(rawText);
 
     return new Response(
       JSON.stringify({ questions, topicTitle: topic.title, topicId, stepIndex: stepIndex ?? null }),

@@ -44,13 +44,12 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const numCards = cardCount || 10;
     const ctx = topic.generation_context as any;
 
-    // Build a rich prompt using stored generation context if available
     let systemPrompt: string;
     let userPrompt: string;
 
@@ -71,64 +70,55 @@ serve(async (req) => {
 
       userPrompt = `Create ${numCards} additional flashcards for "${topic.title}".${contentHint}`;
     } else {
-      // Fallback: no generation context (e.g., roadmap-generated flashcards)
       const subject = stepTitle ? `"${stepTitle}" (part of "${topic.title}")` : `"${topic.title}"`;
       systemPrompt = `You are a flashcard generator for learning. Create ${numCards} flashcards with a front (question/term) and back (answer/definition) for the given topic. Make them progressively harder.`;
       userPrompt = `Create flashcards for studying: ${subject}`;
     }
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_flashcards",
-            description: "Create study flashcards",
-            parameters: {
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: "object",
               properties: {
                 flashcards: {
                   type: "array",
                   items: {
                     type: "object",
-                    properties: { front: { type: "string" }, back: { type: "string" } },
+                    properties: {
+                      front: { type: "string" },
+                      back: { type: "string" },
+                    },
                     required: ["front", "back"],
-                    additionalProperties: false,
                   },
                 },
               },
               required: ["flashcards"],
-              additionalProperties: false,
             },
           },
-        }],
-        tool_choice: { type: "function", function: { name: "create_flashcards" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
       if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("No response from AI");
 
-    const { flashcards } = JSON.parse(toolCall.function.arguments);
+    const { flashcards } = JSON.parse(rawText);
 
     // Create a flashcard group
     const groupName = stepTitle ? `${topic.title} - ${stepTitle}` : topic.title;

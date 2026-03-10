@@ -124,14 +124,13 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const hasSource = sourceContent && typeof sourceContent === "string" && sourceContent.length > 50;
     const truncatedSource = hasSource ? sourceContent.slice(0, 15000) : "";
     const isStrict = hasSource && strictMode === true;
 
-    // ── Phase 1: AI generates roadmap structure with search queries ──
     const strictInstruction = isStrict
       ? `\n\nCRITICAL: You are in STRICT MODE. The roadmap MUST be based EXCLUSIVELY on the provided source material. Do NOT add any topics, concepts, or steps that are not covered in the source material. Every step must directly reference or derive from the content provided. If the source material doesn't cover enough for 8 steps, create fewer steps (minimum 4) but NEVER invent content not in the source.`
       : hasSource
@@ -163,104 +162,76 @@ Make the roadmap progressive — each step builds on the previous one.${strictIn
       ? `Create a learning roadmap for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`
       : `Create a learning roadmap for: "${topic.trim()}". Cover fundamentals to advanced concepts.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userContent },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "create_roadmap",
-              description: "Create a learning roadmap with search queries for live resource discovery",
-              parameters: {
-                type: "object",
-                properties: {
-                  steps: {
-                    type: "array",
-                    minItems: isStrict ? 4 : 8,
-                    maxItems: 12,
-                    items: {
-                      type: "object",
-                      properties: {
-                        title: { type: "string" },
-                        description: { type: "string" },
-                        estimatedTime: { type: "string" },
-                        videoSearchQuery: {
-                          type: "string",
-                          description: "YouTube search query to find best tutorial video for this step",
-                        },
-                        suggestedResources: {
-                          type: "array",
-                          description: "Non-video resources with real URLs",
-                          items: {
-                            type: "object",
-                            properties: {
-                              name: { type: "string" },
-                              url: { type: "string" },
-                              type: { type: "string", enum: ["website", "docs", "exercise"] },
-                            },
-                            required: ["name", "url", "type"],
-                            additionalProperties: false,
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userContent }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              properties: {
+                steps: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      description: { type: "string" },
+                      estimatedTime: { type: "string" },
+                      videoSearchQuery: { type: "string" },
+                      suggestedResources: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            name: { type: "string" },
+                            url: { type: "string" },
+                            type: { type: "string" },
                           },
+                          required: ["name", "url", "type"],
                         },
                       },
-                      required: ["title", "description", "estimatedTime", "videoSearchQuery"],
-                      additionalProperties: false,
                     },
+                    required: ["title", "description", "estimatedTime", "videoSearchQuery"],
                   },
                 },
-                required: ["steps"],
-                additionalProperties: false,
               },
+              required: ["steps"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "create_roadmap" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       const text = await aiResponse.text();
-      console.error("AI error:", status, text);
+      console.error("Gemini error:", status, text);
       if (status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please try again later." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error("AI generation failed");
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("No response from AI");
 
-    const { steps: rawSteps } = JSON.parse(toolCall.function.arguments);
+    const { steps: rawSteps } = JSON.parse(rawText);
     console.log(`AI generated ${rawSteps.length} steps, now searching for real resources...`);
 
     // ── Phase 2: Live YouTube search + URL verification (all in parallel) ──
     const enrichedSteps = await Promise.all(
       rawSteps.map(async (step: any, i: number) => {
-        // Run YouTube search and URL verification concurrently for this step
         const [youtubeResults, verifiedResources] = await Promise.all([
-          // Search YouTube for real videos
           searchYouTube(step.videoSearchQuery, 2),
-
-          // Verify suggested non-video URLs in parallel
           (async () => {
             const suggested = step.suggestedResources || [];
             const verifications = await Promise.allSettled(
@@ -275,11 +246,7 @@ Make the roadmap progressive — each step builds on the previous one.${strictIn
           })(),
         ]);
 
-        // Combine: verified non-video resources + real YouTube videos
-        const resources = [
-          ...youtubeResults,
-          ...verifiedResources,
-        ];
+        const resources = [...youtubeResults, ...verifiedResources];
 
         console.log(
           `Step ${i + 1} "${step.title}": ${youtubeResults.length} YouTube videos, ${verifiedResources.length}/${(step.suggestedResources || []).length} URLs verified`

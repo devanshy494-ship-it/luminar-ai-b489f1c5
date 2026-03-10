@@ -5,7 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// YouTube search via Innertube (no API key needed)
 async function searchYouTube(query: string, maxResults = 3): Promise<Array<{ name: string; url: string }>> {
   try {
     const response = await fetch(
@@ -47,7 +46,6 @@ async function searchYouTube(query: string, maxResults = 3): Promise<Array<{ nam
   }
 }
 
-// URL verification
 async function verifyUrl(url: string): Promise<boolean> {
   try {
     const controller = new AbortController();
@@ -71,19 +69,10 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
-    // AI generates categorized extra materials with search queries
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a learning resource curator. Given a topic and step within a structured learning roadmap, provide comprehensive extra learning materials categorized into: websites (tutorials, articles, documentation), books (real published books with authors), apps (learning apps, tools, IDEs, platforms), and other (podcasts, communities, forums, cheat sheets, checklists).
+    const systemPrompt = `You are a learning resource curator. Given a topic and step within a structured learning roadmap, provide comprehensive extra learning materials categorized into: websites (tutorials, articles, documentation), books (real published books with authors), apps (learning apps, tools, IDEs, platforms), and other (podcasts, communities, forums, cheat sheets, checklists).
 
 For each resource provide:
 - name: descriptive title
@@ -92,100 +81,76 @@ For each resource provide:
 
 Also provide a youtubeSearchQuery for finding relevant video tutorials.
 
-Provide 3-5 items per category. Only include resources that are genuinely relevant and helpful for this specific step. Consider the learner's position in the roadmap — earlier steps need beginner-friendly resources, later steps need more advanced ones.`,
-          },
-          {
-            role: "user",
-            content: `Topic: "${topicTitle}"\nStep: "${stepTitle}" (Step ${stepIndex !== undefined ? stepIndex + 1 : '?'} of ${totalSteps || '?'})\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n${allSteps ? `\nFull roadmap steps:\n${allSteps.map((s: any) => `${s.index + 1}. ${s.title}: ${s.description}`).join('\n')}` : ''}\n${generationContext ? `\nAdditional learning context: ${JSON.stringify(generationContext)}` : ''}\n\nProvide categorized extra learning materials specifically relevant to this step, considering where the learner is in their journey.`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "provide_materials",
-              description: "Provide categorized extra learning materials",
-              parameters: {
-                type: "object",
-                properties: {
-                  youtubeSearchQuery: { type: "string", description: "YouTube search query for tutorial videos" },
-                  websites: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        url: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["name", "url", "description"],
-                      additionalProperties: false,
-                    },
-                  },
-                  books: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        url: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["name", "url", "description"],
-                      additionalProperties: false,
-                    },
-                  },
-                  apps: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        url: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["name", "url", "description"],
-                      additionalProperties: false,
-                    },
-                  },
-                  other: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        name: { type: "string" },
-                        url: { type: "string" },
-                        description: { type: "string" },
-                      },
-                      required: ["name", "url", "description"],
-                      additionalProperties: false,
-                    },
+Provide 3-5 items per category. Only include resources that are genuinely relevant and helpful for this specific step.`;
+
+    const userPrompt = `Topic: "${topicTitle}"\nStep: "${stepTitle}" (Step ${stepIndex !== undefined ? stepIndex + 1 : '?'} of ${totalSteps || '?'})\n${stepDescription ? `Description: "${stepDescription}"` : ""}\n${allSteps ? `\nFull roadmap steps:\n${allSteps.map((s: any) => `${s.index + 1}. ${s.title}: ${s.description}`).join('\n')}` : ''}\n${generationContext ? `\nAdditional learning context: ${JSON.stringify(generationContext)}` : ''}\n\nProvide categorized extra learning materials specifically relevant to this step.`;
+
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: userPrompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              properties: {
+                youtubeSearchQuery: { type: "string" },
+                websites: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { name: { type: "string" }, url: { type: "string" }, description: { type: "string" } },
+                    required: ["name", "url", "description"],
                   },
                 },
-                required: ["youtubeSearchQuery", "websites", "books", "apps", "other"],
-                additionalProperties: false,
+                books: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { name: { type: "string" }, url: { type: "string" }, description: { type: "string" } },
+                    required: ["name", "url", "description"],
+                  },
+                },
+                apps: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { name: { type: "string" }, url: { type: "string" }, description: { type: "string" } },
+                    required: ["name", "url", "description"],
+                  },
+                },
+                other: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: { name: { type: "string" }, url: { type: "string" }, description: { type: "string" } },
+                    required: ["name", "url", "description"],
+                  },
+                },
               },
+              required: ["youtubeSearchQuery", "websites", "books", "apps", "other"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "provide_materials" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("No response from AI");
 
-    const materials = JSON.parse(toolCall.function.arguments);
+    const materials = JSON.parse(rawText);
 
-    // Phase 2: YouTube search + URL verification in parallel
     const allUrls = [
       ...materials.websites.map((r: any) => ({ ...r, category: "websites" })),
       ...materials.books.map((r: any) => ({ ...r, category: "books" })),
@@ -201,7 +166,6 @@ Provide 3-5 items per category. Only include resources that are genuinely releva
       }),
     ]);
 
-    // Rebuild categories with only verified URLs
     const verified: Record<string, any[]> = { websites: [], books: [], apps: [], other: [] };
     for (const item of verificationResults as any[]) {
       if (item.valid) {
@@ -209,7 +173,6 @@ Provide 3-5 items per category. Only include resources that are genuinely releva
       }
     }
 
-    // Add YouTube results as videos category
     const videos = youtubeResults.map((v: any) => ({ name: v.name, url: v.url, description: "YouTube tutorial video" }));
 
     console.log(`Extra materials: ${videos.length} videos, ${verified.websites.length} websites, ${verified.books.length} books, ${verified.apps.length} apps, ${verified.other.length} other`);

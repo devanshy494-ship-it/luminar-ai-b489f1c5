@@ -41,23 +41,18 @@ function decodeHtmlEntities(text: string): string {
     .trim();
 }
 
-// Encode video ID into protobuf-like params for get_transcript endpoint
 function encodeTranscriptParams(videoId: string): string {
-  // Inner message: field 1 (string) = videoId
-  // Protobuf: tag=0x0a (field 1, wire type 2), length, then bytes
   const videoIdBytes = new TextEncoder().encode(videoId);
   const inner = new Uint8Array(2 + videoIdBytes.length);
-  inner[0] = 0x0a; // field 1, wire type 2 (length-delimited)
+  inner[0] = 0x0a;
   inner[1] = videoIdBytes.length;
   inner.set(videoIdBytes, 2);
 
-  // Outer wrapper: field 1 (bytes) = inner
   const outer = new Uint8Array(2 + inner.length);
   outer[0] = 0x0a;
   outer[1] = inner.length;
   outer.set(inner, 2);
 
-  // Base64 encode
   let binary = '';
   for (let i = 0; i < outer.length; i++) {
     binary += String.fromCharCode(outer[i]);
@@ -65,7 +60,6 @@ function encodeTranscriptParams(videoId: string): string {
   return btoa(binary);
 }
 
-// Method 1: Innertube get_transcript endpoint (most reliable)
 async function tryInnertubeGetTranscript(videoId: string): Promise<string | null> {
   console.log("Trying Innertube get_transcript endpoint...");
   
@@ -105,14 +99,12 @@ async function tryInnertubeGetTranscript(videoId: string): Promise<string | null
 
     const data = await response.json();
     
-    // Navigate the response structure
     const actions = data?.actions;
     if (!actions || !Array.isArray(actions)) {
       console.log("No actions in get_transcript response");
       return null;
     }
 
-    // Find the transcript content
     const transcriptAction = actions.find((a: any) => 
       a?.updateEngagementPanelAction?.content?.transcriptRenderer?.content?.transcriptSearchPanelRenderer?.body?.transcriptSegmentListRenderer?.initialSegments
     );
@@ -124,7 +116,6 @@ async function tryInnertubeGetTranscript(videoId: string): Promise<string | null
     }
 
     if (!segments) {
-      // Try alternative path
       for (const action of actions) {
         const body = action?.updateEngagementPanelAction?.content?.transcriptRenderer?.body?.transcriptBodyRenderer?.cueGroups;
         if (body && Array.isArray(body)) {
@@ -162,7 +153,6 @@ async function tryInnertubeGetTranscript(videoId: string): Promise<string | null
     }
 
     console.log("Could not extract text from get_transcript response structure");
-    console.log("Response keys:", JSON.stringify(Object.keys(data)));
     return null;
   } catch (e) {
     console.error("Innertube get_transcript error:", e);
@@ -170,7 +160,6 @@ async function tryInnertubeGetTranscript(videoId: string): Promise<string | null
   }
 }
 
-// Method 2: Watch page scraping with consent bypass
 async function tryWatchPageScraping(videoId: string): Promise<string | null> {
   console.log("Trying watch page scraping with consent bypass...");
   
@@ -192,10 +181,8 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
 
     const html = await pageResponse.text();
 
-    // Try multiple regex patterns to find captionTracks
     let captionTracks: any[] | null = null;
 
-    // Pattern 1: Direct captionTracks in the HTML
     const captionMatch = html.match(/"captionTracks"\s*:\s*(\[.*?\])\s*[,}]/s);
     if (captionMatch) {
       try {
@@ -204,7 +191,6 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
       } catch {}
     }
 
-    // Pattern 2: ytInitialPlayerResponse
     if (!captionTracks) {
       const playerMatch = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var\s|<\/script|\n)/s);
       if (playerMatch) {
@@ -216,7 +202,6 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
       }
     }
 
-    // Pattern 3: Search for the caption URL pattern directly
     if (!captionTracks) {
       const urlMatch = html.match(/"baseUrl"\s*:\s*"(https:\/\/www\.youtube\.com\/api\/timedtext[^"]+)"/);
       if (urlMatch) {
@@ -231,7 +216,6 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
       return null;
     }
 
-    // Prefer English
     const enTrack = captionTracks.find((t: any) =>
       t.languageCode === "en" || t.languageCode?.startsWith("en")
     );
@@ -240,7 +224,6 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
 
     if (!captionUrl) return null;
 
-    // Unescape URL
     captionUrl = captionUrl.replace(/\\u0026/g, '&');
     console.log(`Using caption track: ${track.languageCode}`);
 
@@ -252,7 +235,6 @@ async function tryWatchPageScraping(videoId: string): Promise<string | null> {
 }
 
 async function fetchCaptionFromUrl(captionUrl: string): Promise<string | null> {
-  // Try json3 first
   try {
     const json3Url = captionUrl + (captionUrl.includes('?') ? '&' : '?') + 'fmt=json3';
     const res = await fetch(json3Url);
@@ -279,7 +261,6 @@ async function fetchCaptionFromUrl(captionUrl: string): Promise<string | null> {
     }
   } catch {}
 
-  // Fallback to XML
   try {
     const res = await fetch(captionUrl);
     if (res.ok) {
@@ -302,7 +283,6 @@ async function fetchCaptionFromUrl(captionUrl: string): Promise<string | null> {
   return null;
 }
 
-// Method 3: Innertube player endpoint to get caption URLs
 async function tryInnertubePlayer(videoId: string): Promise<string | null> {
   console.log("Trying Innertube player endpoint...");
   
@@ -358,7 +338,6 @@ async function tryInnertubePlayer(videoId: string): Promise<string | null> {
 }
 
 async function fetchTranscript(videoId: string): Promise<string> {
-  // Try all methods in sequence
   const method1 = await tryInnertubeGetTranscript(videoId);
   if (method1 && method1.length > 50) return method1;
 
@@ -382,33 +361,27 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
 }
 
 async function cleanupTranscript(rawTranscript: string, videoTitle: string): Promise<string> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  if (!LOVABLE_API_KEY) return rawTranscript;
+  const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+  if (!GEMINI_API_KEY) return rawTranscript;
 
   const truncated = rawTranscript.length > 12000 ? rawTranscript.slice(0, 12000) : rawTranscript;
 
   try {
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          {
-            role: "system",
-            content: `You are a transcript editor. Fix grammar, punctuation, capitalization, and obvious speech-to-text errors in this YouTube video transcript. The video is titled "${videoTitle}". Keep ALL the original meaning and content — only fix errors. Add proper paragraph breaks where topics change. Do NOT summarize, skip, or add content. Return ONLY the cleaned transcript text.`,
-          },
-          { role: "user", content: truncated },
-        ],
-      }),
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: `You are a transcript editor. Fix grammar, punctuation, capitalization, and obvious speech-to-text errors in this YouTube video transcript. The video is titled "${videoTitle}". Keep ALL the original meaning and content — only fix errors. Add proper paragraph breaks where topics change. Do NOT summarize, skip, or add content. Return ONLY the cleaned transcript text.` }] },
+          contents: [{ parts: [{ text: truncated }] }],
+        }),
+      }
+    );
 
     if (!response.ok) return rawTranscript;
     const data = await response.json();
-    return data.choices?.[0]?.message?.content || rawTranscript;
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || rawTranscript;
   } catch {
     return rawTranscript;
   }
@@ -421,7 +394,6 @@ serve(async (req) => {
     const body = await req.json();
     const { url, manualTranscript } = body;
 
-    // If user provided manual transcript, use it directly
     if (manualTranscript && manualTranscript.trim().length > 50) {
       const videoId = url ? extractVideoId(url) : null;
       const title = videoId ? await fetchVideoTitle(videoId) : "Manual Transcript";
