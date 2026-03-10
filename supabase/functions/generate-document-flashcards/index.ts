@@ -38,7 +38,6 @@ serve(async (req) => {
       });
     }
 
-    // Create a topic for this document
     const { data: topic, error: topicError } = await supabase
       .from("topics")
       .insert({ title, user_id: user.id })
@@ -49,22 +48,13 @@ serve(async (req) => {
       throw new Error("Failed to create topic: " + (topicError?.message || "Unknown"));
     }
 
-    // Save generation context for "Generate More" to use later
     const contentSummary = content.length > 2000 ? content.slice(0, 2000) : content;
-    const generationContext = {
-      selectedTopics,
-      scope: scope || null,
-      totalCards,
-      contentSummary,
-    };
+    const generationContext = { selectedTopics, scope: scope || null, totalCards, contentSummary };
 
-    await supabase
-      .from("topics")
-      .update({ generation_context: generationContext })
-      .eq("id", topic.id);
+    await supabase.from("topics").update({ generation_context: generationContext }).eq("id", topic.id);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const truncated = content.length > 15000 ? content.slice(0, 15000) + "\n[...content truncated...]" : content;
 
@@ -76,56 +66,38 @@ serve(async (req) => {
       ? `\n\nIMPORTANT FOCUS: The user wants flashcards specifically about: "${scope}". Prioritize this focus area and ensure all cards are relevant to it.`
       : "";
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          {
-            role: "system",
-            content: `You are a flashcard generator. Create exactly ${totalCards} flashcards from the provided content, covering these topics:\n${topicsList}\n\nEach flashcard should have a clear question (front) and concise answer (back). Make them progressively harder. Cover all listed topics proportionally.${scopeInstruction}`,
-          },
-          {
-            role: "user",
-            content: `Generate ${totalCards} flashcards from this content:\n\n${truncated}`,
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "create_flashcards",
-              description: "Create study flashcards",
-              parameters: {
-                type: "object",
-                properties: {
-                  flashcards: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        front: { type: "string" },
-                        back: { type: "string" },
-                        topicName: { type: "string", description: "Which topic this card belongs to" },
-                      },
-                      required: ["front", "back", "topicName"],
-                      additionalProperties: false,
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: `You are a flashcard generator. Create exactly ${totalCards} flashcards from the provided content, covering these topics:\n${topicsList}\n\nEach flashcard should have a clear question (front) and concise answer (back). Make them progressively harder. Cover all listed topics proportionally.${scopeInstruction}` }] },
+          contents: [{ parts: [{ text: `Generate ${totalCards} flashcards from this content:\n\n${truncated}` }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              properties: {
+                flashcards: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      front: { type: "string" },
+                      back: { type: "string" },
+                      topicName: { type: "string" },
                     },
+                    required: ["front", "back", "topicName"],
                   },
                 },
-                required: ["flashcards"],
-                additionalProperties: false,
               },
+              required: ["flashcards"],
             },
           },
-        ],
-        tool_choice: { type: "function", function: { name: "create_flashcards" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
@@ -139,15 +111,14 @@ serve(async (req) => {
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) {
       await supabase.from("topics").delete().eq("id", topic.id);
-      throw new Error("No tool call in response");
+      throw new Error("No response from AI");
     }
 
-    const { flashcards } = JSON.parse(toolCall.function.arguments);
+    const { flashcards } = JSON.parse(rawText);
 
-    // Create flashcard group
     const { data: group, error: groupError } = await supabase
       .from("flashcard_groups")
       .insert({ user_id: user.id, name: title, topic_id: topic.id })

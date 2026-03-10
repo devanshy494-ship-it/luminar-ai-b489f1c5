@@ -17,8 +17,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const contextStr = parentContext ? `\nParent context: ${parentContext}` : "";
 
@@ -26,62 +26,50 @@ serve(async (req) => {
 
 Each sub-topic should be a meaningful expansion of the node, providing deeper insight. Keep labels concise (2-6 words) and add brief descriptions.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Expand this mind map node into sub-topics: "${nodeLabel}"` },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "expand_node",
-            description: "Generate sub-topics for a mind map node",
-            parameters: {
+    const aiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ parts: [{ text: `Expand this mind map node into sub-topics: "${nodeLabel}"` }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
               type: "object",
               properties: {
                 children: {
                   type: "array",
-                  description: "Sub-topics for the expanded node",
                   items: {
                     type: "object",
                     properties: {
-                      label: { type: "string", description: "Concise sub-topic label (2-6 words)" },
-                      description: { type: "string", description: "Brief description (1-2 sentences)" },
+                      label: { type: "string" },
+                      description: { type: "string" },
                     },
                     required: ["label"],
-                    additionalProperties: false,
                   },
                 },
               },
               required: ["children"],
-              additionalProperties: false,
             },
           },
-        }],
-        tool_choice: { type: "function", function: { name: "expand_node" } },
-      }),
-    });
+        }),
+      }
+    );
 
     if (!aiResponse.ok) {
       const status = aiResponse.status;
       await aiResponse.text();
       if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       throw new Error("AI generation failed");
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!rawText) throw new Error("No response from AI");
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = JSON.parse(rawText);
 
     return new Response(
       JSON.stringify({ children: result.children }),
