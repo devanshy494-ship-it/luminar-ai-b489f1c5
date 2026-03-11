@@ -53,7 +53,7 @@ serve(async (req) => {
 
     await supabase.from("topics").update({ generation_context: generationContext }).eq("id", topic.id);
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const truncated = content.length > 15000 ? content.slice(0, 15000) + "\n[...content truncated...]" : content;
