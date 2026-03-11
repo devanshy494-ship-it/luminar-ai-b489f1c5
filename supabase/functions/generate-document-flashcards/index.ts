@@ -100,14 +100,10 @@ serve(async (req) => {
     );
 
     if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      await aiResponse.text();
+      const errorText = await aiResponse.text();
       await supabase.from("topics").delete().eq("id", topic.id);
-      if (status === 429)
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      throw new Error("AI generation failed");
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();

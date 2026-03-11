@@ -209,15 +209,9 @@ Make the roadmap progressive — each step builds on the previous one.${strictIn
     );
 
     if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      const text = await aiResponse.text();
-      console.error("Gemini error:", status, text);
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI generation failed");
+      const errorText = await aiResponse.text();
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
