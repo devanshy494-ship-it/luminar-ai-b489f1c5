@@ -17,7 +17,7 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const contextStr = parentContext ? `\nParent context: ${parentContext}` : "";
@@ -59,10 +59,9 @@ Each sub-topic should be a meaningful expansion of the node, providing deeper in
     );
 
     if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      await aiResponse.text();
-      if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("AI generation failed");
+      const errorText = await aiResponse.text();
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();

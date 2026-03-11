@@ -69,7 +69,7 @@ serve(async (req) => {
       });
     }
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const systemPrompt = `You are a learning resource curator. Given a topic and step within a structured learning roadmap, provide comprehensive extra learning materials categorized into: websites (tutorials, articles, documentation), books (real published books with authors), apps (learning apps, tools, IDEs, platforms), and other (podcasts, communities, forums, cheat sheets, checklists).
@@ -140,9 +140,9 @@ Provide 3-5 items per category. Only include resources that are genuinely releva
     );
 
     if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      if (status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("AI generation failed");
+      const errorText = await aiResponse.text();
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();

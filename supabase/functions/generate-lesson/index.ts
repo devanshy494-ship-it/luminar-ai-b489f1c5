@@ -29,7 +29,7 @@ serve(async (req) => {
       ? `\n\nIMPORTANT WORD LIMIT: The total lesson content (all sections combined) must be ${minWords ? `at least ${minWords} words` : ''}${minWords && maxWords ? ' and ' : ''}${maxWords ? `no more than ${maxWords} words` : ''}. Adjust the depth and number of examples accordingly to meet this requirement.`
       : '';
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
     if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
 
     const systemPrompt = `You are an expert educator. Generate a comprehensive, beginner-friendly lesson for a specific step in a learning roadmap. The lesson should be detailed, engaging, and include practical examples. Use clear explanations and break down complex concepts.${wordLimitInstruction}`;
@@ -77,14 +77,9 @@ Create a detailed lesson for this step.`;
     );
 
     if (!aiResponse.ok) {
-      const status = aiResponse.status;
-      await aiResponse.text();
-      if (status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error("AI generation failed");
+      const errorText = await aiResponse.text();
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();

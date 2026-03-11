@@ -361,7 +361,7 @@ async function fetchVideoTitle(videoId: string): Promise<string> {
 }
 
 async function cleanupTranscript(rawTranscript: string, videoTitle: string): Promise<string> {
-  const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+  const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
   if (!GEMINI_API_KEY) return rawTranscript;
 
   const truncated = rawTranscript.length > 12000 ? rawTranscript.slice(0, 12000) : rawTranscript;
