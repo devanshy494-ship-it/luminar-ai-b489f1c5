@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import NotionExportDialog from '@/components/NotionExportDialog';
+import type { Json } from '@/integrations/supabase/types';
 
 interface Resource {
   name: string;
@@ -97,7 +98,7 @@ export default function Roadmap() {
         supabase.from('flashcards').select('id', { count: 'exact', head: true }).eq('topic_id', topicId),
       ]);
       if (topicRes.data) setTopic(topicRes.data);
-      if (roadmapRes.data) setRoadmap(roadmapRes.data);
+      if (roadmapRes.data) setRoadmap({ ...roadmapRes.data, steps: roadmapRes.data.steps as unknown as Step[] });
       setFlashcardCount(flashcardRes.count || 0);
       setLoading(false);
     }
@@ -112,7 +113,7 @@ export default function Roadmap() {
     const completedCount = newSteps.filter((s) => s.completed).length;
     const progress = Math.round((completedCount / newSteps.length) * 100);
     setRoadmap({ ...roadmap, steps: newSteps, progress });
-    await supabase.from('roadmaps').update({ steps: newSteps, progress }).eq('id', roadmap.id);
+    await supabase.from('roadmaps').update({ steps: newSteps as unknown as Json, progress }).eq('id', roadmap.id);
   };
 
   const handleExpandStep = async (index: number) => {

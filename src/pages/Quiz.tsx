@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import type { Database, Json } from '@/integrations/supabase/types';
 
 interface Question {
   question: string;
@@ -73,15 +74,16 @@ export default function Quiz() {
       const finalWrong = selectedAnswer !== currentQ.correctIndex ? [...wrongQuestions, currentQ] : wrongQuestions;
       if (user && topicId && !isCustomQuiz) {
         try {
-          await supabase.from('quiz_results').insert({
+          const quizResult: Database['public']['Tables']['quiz_results']['Insert'] = {
             topic_id: isCustomQuiz ? topicId : topicId,
             user_id: user.id,
             score: finalScore,
             total: questions.length,
-            questions,
+            questions: questions as unknown as Json,
             step_index: stepIndex ?? null,
-            wrong_questions: finalWrong,
-          });
+            wrong_questions: finalWrong as unknown as Json,
+          };
+          await supabase.from('quiz_results').insert(quizResult);
         } catch (e) {
           console.error('Failed to save quiz result', e);
         }
