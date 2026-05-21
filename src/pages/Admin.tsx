@@ -204,23 +204,10 @@ export default function Admin() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <ShieldAlert className="h-16 w-16 text-destructive" />
-        <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-        <p className="text-muted-foreground">You do not have admin privileges.</p>
-        <Button variant="outline" onClick={() => navigate('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Go Home
-        </Button>
       </div>
     );
   }
