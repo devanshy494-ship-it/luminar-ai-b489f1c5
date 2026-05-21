@@ -55,12 +55,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsAdmin(!!data);
   };
 
+  const consumePendingGoogleSignupPassword = async (userId: string, userEmail: string) => {
+    try {
+      const raw = sessionStorage.getItem('pending_google_signup_password');
+      if (!raw) return;
+      const { password_id } = JSON.parse(raw);
+      sessionStorage.removeItem('pending_google_signup_password');
+      if (!password_id) return;
+
+      // Only consume if this is a brand-new user (profile created moments ago)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('created_at')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (!profile) return;
+      const ageMs = Date.now() - new Date(profile.created_at).getTime();
+      if (ageMs > 60_000) return;
+
+      await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ action: 'record_usage', password_id, user_email: userEmail }),
+        }
+      );
+    } catch { /* ignore */ }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         checkAdminRole(session.user.id);
+        if (_event === 'SIGNED_IN' && session.user.app_metadata?.provider === 'google') {
+          consumePendingGoogleSignupPassword(session.user.id, session.user.email || '');
+        }
       } else {
         setIsAdmin(false);
       }
