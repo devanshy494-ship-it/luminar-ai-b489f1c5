@@ -36,11 +36,10 @@ interface PasswordUsage {
 }
 
 export default function Admin() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
@@ -60,24 +59,6 @@ export default function Admin() {
 
   // Active tab
   const [activeSection, setActiveSection] = useState<'users' | 'passwords'>('users');
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-    const checkAdmin = async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!data);
-    };
-    checkAdmin();
-  }, [user, authLoading]);
 
   useEffect(() => {
     if (isAdmin) {
