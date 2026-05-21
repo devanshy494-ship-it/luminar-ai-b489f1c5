@@ -1,27 +1,38 @@
+# Gate Guest mode and Google sign-in with the admin signup password
 
+Today only the email Sign-Up tab asks for the admin-generated "Signup Password". Guest mode and "Continue with Google" let anyone in. We'll extend the same gate to both, per your choice (Guest every time, Google only first-time).
 
-# Fix Blank Preview — Supabase Client Crash
+## UX changes (`src/pages/Auth.tsx`)
 
-## Problem
-`src/lib/supabase.ts` throws `"Missing Supabase environment variables"` at startup, crashing the entire app and producing a blank screen. The `AuthContext.tsx` imports from this file.
+**Guest tab**
+- Add a required `Signup Password` field (KeyRound icon) below the name field.
+- On submit: call `validate-signup-password` (action `validate`). If invalid → toast and stop. If valid → call `signInAsGuest(name)`, then call `record_usage` with `user_email = "guest:<name>"` so admins can see guest entries in the usage log.
 
-## Root Cause
-The project has **two** Supabase clients:
-1. `src/integrations/supabase/client.ts` — auto-generated, always works
-2. `src/lib/supabase.ts` — manual duplicate with a hard `throw` if env vars are missing
+**Login tab — "Continue with Google"**
+- Add a required `Signup Password` field that appears above the Google button (small helper text: "Required only for first-time sign-in. Returning users can leave it blank.").
+- Actually, to keep it simple and reliable: always require it before initiating Google OAuth. Validate via `validate-signup-password` first. If valid, stash `{ password_id, password_text }` in `sessionStorage` under `pending_google_signup_password` and then call `signInWithGoogle()`. If invalid → toast and don't redirect.
+- This keeps the validation client-side-before-redirect, which is the only safe spot since OAuth navigates away.
 
-## Fix
-**Update `src/lib/supabase.ts`** to simply re-export the auto-generated client:
+**Post-OAuth consumption (first-time only)**
+- In `AuthContext.tsx`, inside `onAuthStateChange`, when we get a `SIGNED_IN` event for a Google user, check `sessionStorage` for `pending_google_signup_password`. If present:
+  - Determine first-time vs returning by reading the user's `profiles.created_at` (the `handle_new_user` trigger creates it on first sign-in). If `created_at` is within the last ~60 seconds of `now()` → treat as new signup → call `record_usage` to consume one use. Otherwise → skip (returning user, no consumption).
+  - Always clear `sessionStorage` key afterwards so it doesn't leak into later sessions.
 
-```typescript
-export { supabase } from '@/integrations/supabase/client';
-```
+## Edge function (`supabase/functions/validate-signup-password/index.ts`)
 
-This is a single-line change. All files importing from `@/lib/supabase` (like `AuthContext.tsx`) will continue to work without modification.
+No structural changes. It already supports `validate` and `record_usage`. We'll just call it from two more places.
 
 ## What is NOT touched
-- `src/integrations/supabase/client.ts` — untouched (auto-generated)
-- `src/contexts/AuthContext.tsx` — untouched
-- `src/integrations/lovable/` — untouched
-- All edge functions — untouched
+- Email Login flow (returning email users still skip the gate).
+- Edge functions other than the one above.
+- Database schema, RLS policies, admin UI.
 
+## Edge cases handled
+- Validation happens before OAuth redirect; no way to bypass by aborting the flow.
+- A used-up password is rejected at validate step (existing `use_count >= max_uses` check).
+- Returning Google users don't consume a use even if they typed a valid password (we check profile age post-login).
+- Guest entries appear in the password usage log as `guest:<name>` for admin visibility.
+
+## Files changed
+- `src/pages/Auth.tsx` — add field to Guest form + Login form (above Google button), wire validation + record_usage for guest, stash session for Google.
+- `src/contexts/AuthContext.tsx` — post-login hook that consumes pending Google signup password for new users only.
