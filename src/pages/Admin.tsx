@@ -36,11 +36,10 @@ interface PasswordUsage {
 }
 
 export default function Admin() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserProfile | null>(null);
@@ -60,24 +59,6 @@ export default function Admin() {
 
   // Active tab
   const [activeSection, setActiveSection] = useState<'users' | 'passwords'>('users');
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      setIsAdmin(false);
-      return;
-    }
-    const checkAdmin = async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!data);
-    };
-    checkAdmin();
-  }, [user, authLoading]);
 
   useEffect(() => {
     if (isAdmin) {
@@ -223,23 +204,10 @@ export default function Admin() {
     }
   };
 
-  if (authLoading) {
+  if (authLoading || !isAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <ShieldAlert className="h-16 w-16 text-destructive" />
-        <h1 className="text-2xl font-bold text-foreground">Access Denied</h1>
-        <p className="text-muted-foreground">You do not have admin privileges.</p>
-        <Button variant="outline" onClick={() => navigate('/')}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Go Home
-        </Button>
       </div>
     );
   }
