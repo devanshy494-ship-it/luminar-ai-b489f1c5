@@ -96,19 +96,74 @@ export default function Auth() {
     }
   };
 
-  const handleGuest = (e: React.FormEvent) => {
+  const validateSignupPassword = async (pwd: string) => {
+    const res = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        body: JSON.stringify({ password_text: pwd }),
+      }
+    );
+    return res.json();
+  };
+
+  const recordUsage = async (password_id: string, user_email: string) => {
+    await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/validate-signup-password`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        body: JSON.stringify({ action: 'record_usage', password_id, user_email }),
+      }
+    );
+  };
+
+  const handleGuest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!guestName.trim()) { toast.error('Please enter your name'); return; }
-    signInAsGuest(guestName.trim());
-    toast.success(`Welcome, ${guestName.trim()}! Your data will be cleared on logout.`);
+    if (!guestSignupPassword.trim()) { toast.error('Signup password required'); return; }
+    setLoading(true);
+    try {
+      const data = await validateSignupPassword(guestSignupPassword.trim());
+      if (!data.valid) {
+        toast.error(data.error || 'Invalid signup password');
+        return;
+      }
+      await recordUsage(data.password_id, `guest:${guestName.trim()}`);
+      signInAsGuest(guestName.trim());
+      toast.success(`Welcome, ${guestName.trim()}! Your data will be cleared on logout.`);
+    } catch {
+      toast.error('Something went wrong');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
+    if (!googleSignupPassword.trim()) {
+      toast.error('Signup password required to continue with Google');
+      return;
+    }
     setLoading(true);
     try {
+      const data = await validateSignupPassword(googleSignupPassword.trim());
+      if (!data.valid) {
+        toast.error(data.error || 'Invalid signup password');
+        setLoading(false);
+        return;
+      }
+      sessionStorage.setItem(
+        'pending_google_signup_password',
+        JSON.stringify({ password_id: data.password_id })
+      );
       const { error } = await signInWithGoogle();
-      if (error) toast.error(error.message);
+      if (error) {
+        sessionStorage.removeItem('pending_google_signup_password');
+        toast.error(error.message);
+      }
     } catch {
+      sessionStorage.removeItem('pending_google_signup_password');
       toast.error('Something went wrong');
     } finally {
       setLoading(false);
