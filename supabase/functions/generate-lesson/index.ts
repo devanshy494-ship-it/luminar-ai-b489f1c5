@@ -29,8 +29,8 @@ serve(async (req) => {
       ? `\n\nIMPORTANT WORD LIMIT: The total lesson content (all sections combined) must be ${minWords ? `at least ${minWords} words` : ''}${minWords && maxWords ? ' and ' : ''}${maxWords ? `no more than ${maxWords} words` : ''}. Adjust the depth and number of examples accordingly to meet this requirement.`
       : '';
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY") || Deno.env.get("GEMINI_API_KEY");
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const systemPrompt = `You are an expert educator. Generate a comprehensive, beginner-friendly lesson for a specific step in a learning roadmap. The lesson should be detailed, engaging, and include practical examples. Use clear explanations and break down complex concepts.${wordLimitInstruction}`;
 
@@ -40,53 +40,70 @@ Step description: "${stepDescription || ''}"
 
 Create a detailed lesson for this step.`;
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userPrompt }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                sections: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      heading: { type: "string" },
-                      content: { type: "string" },
-                    },
-                    required: ["heading", "content"],
-                  },
-                },
-                keyTakeaways: {
-                  type: "array",
-                  items: { type: "string" },
-                },
-              },
-              required: ["sections", "keyTakeaways"],
+    const lessonSchema = {
+      type: "object",
+      properties: {
+        sections: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              heading: { type: "string" },
+              content: { type: "string" },
+            },
+            required: ["heading", "content"],
+            additionalProperties: false,
+          },
+        },
+        keyTakeaways: {
+          type: "array",
+          items: { type: "string" },
+        },
+      },
+      required: ["sections", "keyTakeaways"],
+      additionalProperties: false,
+    };
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "emit_lesson",
+              description: "Emit the generated lesson.",
+              parameters: lessonSchema,
             },
           },
-        }),
-      }
-    );
+        ],
+        tool_choice: { type: "function", function: { name: "emit_lesson" } },
+      }),
+    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("AI gateway error:", aiResponse.status, errorText);
+      return new Response(JSON.stringify({ error: "AI gateway error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
-    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) throw new Error("No response from AI");
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const rawArgs = toolCall?.function?.arguments;
+    if (!rawArgs) throw new Error("No response from AI");
 
-    const lesson = JSON.parse(rawText);
+    const lesson = JSON.parse(rawArgs);
 
     return new Response(
       JSON.stringify(lesson),
