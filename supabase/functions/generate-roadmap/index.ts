@@ -162,63 +162,81 @@ Make the roadmap progressive — each step builds on the previous one.${strictIn
       ? `Create a learning roadmap for: "${topic.trim()}".\n\nSource material:\n\n${truncatedSource}`
       : `Create a learning roadmap for: "${topic.trim()}". Cover fundamentals to advanced concepts.`;
 
-    const aiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userContent }] }],
-          generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: "object",
-              properties: {
-                steps: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      description: { type: "string" },
-                      estimatedTime: { type: "string" },
-                      videoSearchQuery: { type: "string" },
-                      suggestedResources: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            name: { type: "string" },
-                            url: { type: "string" },
-                            type: { type: "string" },
-                          },
-                          required: ["name", "url", "type"],
-                        },
-                      },
-                    },
-                    required: ["title", "description", "estimatedTime", "videoSearchQuery"],
+    const roadmapSchema = {
+      type: "object",
+      properties: {
+        steps: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              description: { type: "string" },
+              estimatedTime: { type: "string" },
+              videoSearchQuery: { type: "string" },
+              suggestedResources: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    name: { type: "string" },
+                    url: { type: "string" },
+                    type: { type: "string" },
                   },
+                  required: ["name", "url", "type"],
+                  additionalProperties: false,
                 },
               },
-              required: ["steps"],
+            },
+            required: ["title", "description", "estimatedTime", "videoSearchQuery"],
+            additionalProperties: false,
+          },
+        },
+      },
+      required: ["steps"],
+      additionalProperties: false,
+    };
+
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userContent },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "emit_roadmap",
+              description: "Emit the generated learning roadmap.",
+              parameters: roadmapSchema,
             },
           },
-        }),
-      }
-    );
+        ],
+        tool_choice: { type: "function", function: { name: "emit_roadmap" } },
+      }),
+    });
 
     if (!aiResponse.ok) {
       const errorText = await aiResponse.text();
-      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      return new Response(JSON.stringify({ error: "Gemini API error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (aiResponse.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      console.error("AI gateway error:", aiResponse.status, errorText);
+      return new Response(JSON.stringify({ error: "AI gateway error: " + errorText }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const aiData = await aiResponse.json();
-    const rawText = aiData.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!rawText) throw new Error("No response from AI");
+    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const rawArgs = toolCall?.function?.arguments;
+    if (!rawArgs) throw new Error("No response from AI");
 
-    const { steps: rawSteps } = JSON.parse(rawText);
+    const { steps: rawSteps } = JSON.parse(rawArgs);
     console.log(`AI generated ${rawSteps.length} steps, now searching for real resources...`);
 
     // ── Phase 2: Live YouTube search + URL verification (all in parallel) ──
