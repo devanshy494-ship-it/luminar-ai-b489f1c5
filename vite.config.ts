@@ -4,7 +4,7 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 
 const SUPABASE_URL_FALLBACK = "https://whqnnbgiwbjaopelvjwm.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY_FALLBACK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJIUzI1NiIsInJlZiI6IndocW5uYmdpd2JqYW9wZWx2andtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzIzOTIsImV4cCI6MjA4ODU0ODM5Mn0.gGqU7u1OYr9Q9gb3q5QdBic2FxnkYNT2vB1dywr1dtk";
+const SUPABASE_PUBLISHABLE_KEY_FALLBACK = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndocW5uYmdpd2JqYW9wZWx2andtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI5NzIzOTIsImV4cCI6MjA4ODU0ODM5Mn0.gGqU7u1OYr9Q9gb3q5QdBic2FxnkYNT2vB1dywr1dtk";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
