@@ -1,22 +1,22 @@
-## Goal
-Ensure only users with the `admin` role can reach the Admin panel at `/admin`. Non-admins (including signed-in regular users and guests) get redirected to the dashboard.
+# Preview not showing — recovery plan
 
-## Changes
+## Diagnosis
 
-**`src/App.tsx`**
-- Add a new `AdminRoute` wrapper that:
-  - Shows the loading spinner while auth/role is resolving.
-  - Redirects to `/auth` if not signed in.
-  - Redirects to `/dashboard` if signed in but `isAdmin` is false.
-  - Renders children only when `isAdmin` is true.
-- Wrap the `/admin` route with `AdminRoute` instead of `ProtectedRoute`.
+- Vite dev server is healthy: responds `200` on `http://localhost:8080/` and serves `index.html` normally.
+- No runtime errors and no browser console logs were captured from the preview.
+- Session replay shows the page started painting but no further activity — consistent with a wedged preview iframe, not a code error.
+- No recent source changes appear to have broken the build.
 
-**`src/pages/Admin.tsx`**
-- Remove the now-redundant local `isAdmin` check effect and "Access denied" branch (the route guard handles it), simplifying the component to rely on `useAuth().isAdmin`.
+## Proposed steps
 
-## Why this is safe
-- `isAdmin` in `AuthContext` is sourced from the `user_roles` table via the `has_role` pattern, with RLS already restricting non-admin access to admin data.
-- Server-side, the `admin-users` edge function already enforces admin via service-role role check, so even if the UI were bypassed, no admin actions could be performed.
+1. **Restart the Vite dev server** in the sandbox to clear any stuck HMR/iframe state.
+2. **Hard-reload the preview** on your side (Cmd/Ctrl+Shift+R) so the iframe re-establishes its connection.
+3. If the preview is still blank after that, **open the browser devtools console** on the preview and share any red errors — I'll investigate from there.
+4. As a fallback, verify on the **published URL** (`https://luminar-ai.lovable.app`) to confirm the app itself is fine and the issue is preview-only.
+5. Problem is in published URL too
 
 ## Out of scope
-- The other scan findings (SSRF, unauthenticated AI functions, signup-password abuse, HIBP). Those are separate fixes — happy to tackle next if you want.
+
+- No code changes. Nothing in the repo currently indicates a bug; jumping into edits would risk breaking working code.
+
+Approve and I'll restart the dev server.
